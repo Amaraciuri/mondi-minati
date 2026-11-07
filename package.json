@@ -2,7 +2,7 @@
   "name": "mondi-minati",
   "version": "1.0.0",
   "private": true,
-  "description": "Mondi Minati: il campo minato in 3D su pianeti esagonali, cubi e ciambelle (Three.js)",
+  "description": "Mined Worlds (Mondi Minati): minesweeper in 3D on hex planets, cubes and donuts (Three.js)",
   "type": "module",
   "scripts": {
     "dev": "node dev.mjs",

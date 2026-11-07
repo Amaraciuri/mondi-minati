@@ -1,16 +1,18 @@
 # Mined Worlds (Mondi Minati)
 
-Minesweeper in 3D, one planet at a time. Three.js and plain JavaScript, no framework: the build is a static site ready for Cloudflare Pages.
+Minesweeper in 3D, one planet at a time. Three.js and plain JavaScript, no framework: the build is a static site.
+
+**[▶ Play it in your browser](https://mondi-minati.davide-venezia.workers.dev/)**: phone or computer, nothing to install.
 
 The game is in English and Italian. It follows the device language (Italian devices get Italian, everything else English), and the player can switch from the title screen or in Settings.
 
 ![Title screen](docs/title.webp)
 
-| Titan Cube | Classic '95 |
+| Gas Giant | Titan Cube |
 | --- | --- |
-| ![Cube](docs/cubo.webp) | ![Classic 95](docs/classico.webp) |
-
-<img src="docs/mobile-ciambella.webp" width="260" alt="The donut world on a phone">
+| ![The ringed gas giant, halfway cleared](docs/planet.webp) | ![The Titan Cube, numbers running across its edges](docs/cube.webp) |
+| **Classic '95** | **Donut, on a phone** |
+| ![The classic flat field](docs/classic.webp) | <img src="docs/mobile-donut.webp" width="260" alt="The donut world on a phone"> |
 
 ## What's inside
 
@@ -22,7 +24,7 @@ The game is in English and Italian. It follows the device language (Italian devi
 - **Classic '95**: the flat grey field on a teal background, with LED counters and the smiley (9×9, 16×16, 30×16).
 - **Daily challenge**: the same planet for everyone, generated from the date.
 - **Free play**: pick shape, size and difficulty.
-- **No blind guessing**: the first move is always safe and every field is checked by a logic solver before you play it.
+- **No blind guessing**: the first move is always safe and every field is checked by a logic solver before you play it (on by default, can be turned off in Settings).
 - Hints (3 per world), undo after an explosion, stars and records saved in the browser.
 - Sound effects and music synthesized with WebAudio, no audio files.
 - Installable from the browser (PWA) and playable offline after the first visit.
@@ -51,9 +53,11 @@ npm run build    # static site in dist/
 
 Add `?debug` to the URL to get `window.__mm` in the console (game state and game functions).
 
-## Deploy to Cloudflare Pages
+## Deploy
 
-Once the repository is connected, every push to `main` redeploys the site.
+`npm run build` writes a static site to `dist/` that any static host can serve. The live version runs on Cloudflare, connected to this repository: every push to `main` rebuilds and redeploys it.
+
+To host your own copy on Cloudflare Pages:
 
 1. Cloudflare dashboard → **Workers & Pages** → **Create application** → **Pages** tab → **Import an existing Git repository**.
 2. Pick `Amaraciuri/mondi-minati`, branch `main`, then **Begin setup**.
@@ -66,6 +70,8 @@ Once the repository is connected, every push to `main` redeploys the site.
 From a terminal instead: `npm run build && npx wrangler pages deploy dist --project-name mondi-minati`.
 
 `public/_headers` sets long-term caching on the hashed files (`/assets`, `/fonts`) and a few security headers.
+
+Link previews (WhatsApp, Telegram, LinkedIn, X) use `public/og.jpg` and need absolute URLs: if you deploy somewhere else, build with `SITE_URL=https://your.domain npm run build`.
 
 ## Phone app (Capacitor)
 
@@ -108,4 +114,10 @@ python3 -m http.server 8765        # from the project folder
 python3 test/smoke.py desktop level0,click,autoplay
 ```
 
-Screenshots are written to `shots/`.
+Screenshots are written to `shots/`. `python3 test/readme_shots.py` regenerates the pictures in this README and the link preview.
+
+## Credits
+
+- [three.js](https://threejs.org) (MIT license).
+- Fonts: [Unbounded](https://fontsource.org/fonts/unbounded) and [Chakra Petch](https://fontsource.org/fonts/chakra-petch), served from [Fontsource](https://fontsource.org) packages (SIL Open Font License 1.1).
+- Sound effects and music are synthesized in the browser: no audio files.

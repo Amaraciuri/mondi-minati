@@ -93,7 +93,21 @@ if (target === 'site') {
   }
   for (const f of fs.readdirSync('public')) fs.copyFileSync(`public/${f}`, `${out}/${f}`);
 
+  // link previews (WhatsApp, Telegram, LinkedIn, X...) need absolute URLs
+  const site = (process.env.SITE_URL || 'https://mondi-minati.davide-venezia.workers.dev').replace(/\/+$/, '');
+  const ogTitle = 'Mined Worlds: minesweeper in 3D';
+  const ogText = 'Minesweeper on hex planets, cubes and donuts. Every field can be solved by logic alone. Free, in the browser.';
   const head = [
+    '<meta property="og:type" content="website">',
+    '<meta property="og:site_name" content="Mined Worlds">',
+    `<meta property="og:title" content="${ogTitle}">`,
+    `<meta property="og:description" content="${ogText}">`,
+    `<meta property="og:url" content="${site}/">`,
+    `<meta property="og:image" content="${site}/og.jpg">`,
+    '<meta property="og:image:width" content="1200">',
+    '<meta property="og:image:height" content="630">',
+    '<meta property="og:image:alt" content="Mined Worlds title screen with a hex planet covered in numbers and flags">',
+    '<meta name="twitter:card" content="summary_large_image">',
     '<link rel="icon" href="./favicon.svg" type="image/svg+xml">',
     '<link rel="apple-touch-icon" href="./apple-touch-icon.png">',
     '<link rel="manifest" href="./manifest.webmanifest">',
