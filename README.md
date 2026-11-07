@@ -121,3 +121,7 @@ Screenshots are written to `shots/`. `python3 test/readme_shots.py` regenerates 
 - [three.js](https://threejs.org) (MIT license).
 - Fonts: [Unbounded](https://fontsource.org/fonts/unbounded) and [Chakra Petch](https://fontsource.org/fonts/chakra-petch), served from [Fontsource](https://fontsource.org) packages (SIL Open Font License 1.1).
 - Sound effects and music are synthesized in the browser: no audio files.
+
+## License
+
+The code is MIT licensed, see [LICENSE](LICENSE). three.js and the fonts keep their own licenses (see Credits).

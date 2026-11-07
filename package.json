@@ -2,6 +2,7 @@
   "name": "mondi-minati",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Mined Worlds (Mondi Minati): minesweeper in 3D on hex planets, cubes and donuts (Three.js)",
   "type": "module",
   "scripts": {
