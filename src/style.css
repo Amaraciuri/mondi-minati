@@ -143,7 +143,10 @@ button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--signa
 .mbtn.retro95 small { color: #303030; }
 .mbtn.retro95:active { border-color: #7b7b7b #fff #fff #7b7b7b; transform: none; }
 .mbtn.resume { grid-column: 1 / -1; min-height: 60px; border-color: rgba(255, 181, 71, 0.45); }
-.progress-line { grid-column: 1 / -1; text-align: center; font-size: 13px; color: var(--muted); letter-spacing: 0.06em; padding-top: 4px; }
+.progress-line { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); letter-spacing: 0.06em; padding-top: 4px; }
+.langpill { display: inline-flex; gap: 2px; padding: 3px; border-radius: 99px; border: 1px solid var(--line); background: var(--glass); }
+.langpill b { padding: 4px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); }
+.langpill b.on { background: var(--signal); color: var(--signal-ink); }
 
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
   #scrTitle { grid-template-columns: minmax(380px, 470px) minmax(0, 1fr); grid-template-rows: auto 1fr; padding-left: max(44px, env(safe-area-inset-left)); padding-bottom: 40px; }

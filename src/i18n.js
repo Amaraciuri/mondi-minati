@@ -1,5 +1,6 @@
 const STR = {
   it: {
+    pageTitle: 'Mondi Minati',
     title: 'Mondi Minati',
     tagline: 'Il campo minato in 3D, un pianeta alla volta',
     play: 'Campagna',
@@ -114,6 +115,7 @@ const STR = {
     exitConfirm: 'Esci',
   },
   en: {
+    pageTitle: 'Mined Worlds',
     title: 'Mined Worlds',
     tagline: 'Minesweeper in 3D, one planet at a time',
     play: 'Campaign',
@@ -229,20 +231,32 @@ const STR = {
   },
 };
 
-let lang = 'it';
+let lang = 'en';
+// Italian for devices set to Italian, English everywhere else.
+export function detectLang() {
+  try {
+    const first = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    return /^it\b/i.test(first) ? 'it' : 'en';
+  } catch (e) {
+    return 'en';
+  }
+}
 export function setLang(l) {
-  lang = STR[l] ? l : 'it';
+  lang = STR[l] ? l : 'en';
   document.documentElement.lang = lang;
+  document.title = STR[lang].pageTitle;
+  const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (appTitle) appTitle.content = STR[lang].pageTitle;
 }
 export function getLang() {
   return lang;
 }
 export function t(key, params) {
-  let s = STR[lang][key] ?? STR.it[key] ?? key;
+  let s = STR[lang][key] ?? STR.en[key] ?? key;
   if (params && typeof s === 'string') for (const k in params) s = s.replace('{' + k + '}', params[k]);
   return s;
 }
 export function L(obj) {
   // pick a localized field from {it, en}
-  return obj ? obj[lang] ?? obj.it : '';
+  return obj ? obj[lang] ?? obj.en ?? obj.it : '';
 }

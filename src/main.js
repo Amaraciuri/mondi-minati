@@ -9,7 +9,7 @@ import { Rig } from './rig.js';
 import { Input } from './input.js';
 import { Sound } from './audio.js';
 import { THEMES, CAMPAIGN, CLASSIC_LEVELS, CUSTOM_SIZES, CUSTOM_DENSITY, SHAPE_LABEL, campaignLevel, classicLevel, customLevel, dailyLevel, cellCountOf } from './levels.js';
-import { t, L, setLang, getLang } from './i18n.js';
+import { t, L, setLang, getLang, detectLang } from './i18n.js';
 import { $, ICON, setLed, setFace, toast, hideToast, banner, openModal, closeModal, modalOpen, starsHTML, starSVG, esc } from './ui.js';
 import { mulberry32, formatTime, todayKey, clamp, easeOutBack, easeOutCubic } from './util.js';
 
@@ -19,7 +19,8 @@ THREE.ColorManagement.enabled = false;
 const STORE_KEY = 'mondi-minati-v1';
 function defaults() {
   return {
-    settings: { sfx: true, music: true, haptics: true, noGuess: true, lang: 'it' },
+    // lang is only used once the player picks one (langChosen); until then it follows the device
+    settings: { sfx: true, music: true, haptics: true, noGuess: true, lang: 'en', langChosen: false },
     campaign: { unlocked: 1, worlds: {} },
     classic: {},
     custom: {},
@@ -55,7 +56,15 @@ function saveStore() {
     /* storage unavailable: progress lives for this session only */
   }
 }
-setLang(store.settings.lang);
+const effectiveLang = () => (store.settings.langChosen ? store.settings.lang : detectLang());
+setLang(effectiveLang());
+
+function chooseLang(l) {
+  store.settings.lang = l;
+  store.settings.langChosen = true;
+  setLang(l);
+  saveStore();
+}
 
 // ============================================================ renderer & scene
 let renderer;
@@ -1033,7 +1042,17 @@ function showTitle() {
   setScreen('title');
   S.level = null;
   buildDemo();
+  renderTitle();
+  resize();
+  requestAnimationFrame(() => {
+    layoutTitle();
+    demoFit(true);
+  });
+}
+
+function renderTitle() {
   const resume = store.current && store.current.level;
+  const lang = getLang();
   $('scrTitle').innerHTML = `
     <div class="title-top">
       <div>
@@ -1057,7 +1076,7 @@ function showTitle() {
       <button class="mbtn" id="tDaily" type="button"><span><b>${esc(t('daily'))}</b><small>${esc(t('dailySub'))}</small></span>${ICON.calendar}</button>
       <button class="mbtn" id="tCustom" type="button"><span><b>${esc(t('custom'))}</b><small>${esc(t('customSub'))}</small></span>${ICON.cube}</button>
       <button class="mbtn retro95" id="tClassic" type="button"><span><b>${esc(t('classic'))}</b><small>${esc(t('classicSub'))}</small></span>${ICON.grid}</button>
-      <div class="progress-line">${esc(progressText())}</div>
+      <div class="progress-line"><span>${esc(progressText())}</span><button class="langpill" id="tLang" type="button" aria-label="${esc(t('language'))}"><b class="${lang === 'it' ? 'on' : ''}">IT</b><b class="${lang === 'en' ? 'on' : ''}">EN</b></button></div>
     </div>`;
   const on = (id, fn) =>
     $(id)?.addEventListener('click', () => {
@@ -1075,10 +1094,10 @@ function showTitle() {
     const cur = store.current;
     fadeThen(() => startLevel(cur.level, cur));
   });
-  resize();
-  requestAnimationFrame(() => {
+  on('tLang', () => {
+    chooseLang(getLang() === 'it' ? 'en' : 'it');
+    renderTitle();
     layoutTitle();
-    demoFit(true);
   });
 }
 
@@ -1263,7 +1282,7 @@ function showSettings(onClose) {
     ${switchRow('sHap', t('haptics'), s.haptics)}
     ${switchRow('sNg', t('noGuess'), s.noGuess, t('noGuessSub'))}
     <div class="field-label">${esc(t('language'))}</div>
-    ${segHTML('sLang', ['Italiano', 'English'], s.lang === 'en' ? 1 : 0)}
+    ${segHTML('sLang', ['Italiano', 'English'], getLang() === 'en' ? 1 : 0)}
     <div class="actions two"><button class="btn danger" id="sReset" type="button">${esc(t('resetProgress'))}</button><button class="btn primary" id="sClose" type="button">${esc(t('close'))}</button></div>`,
     { onClose: typeof onClose === 'function' ? onClose : null }
   );
@@ -1286,9 +1305,7 @@ function showSettings(onClose) {
     .querySelectorAll('button')
     .forEach((b) =>
       b.addEventListener('click', () => {
-        s.lang = +b.dataset.k === 1 ? 'en' : 'it';
-        setLang(s.lang);
-        saveStore();
+        chooseLang(+b.dataset.k === 1 ? 'en' : 'it');
         sound.ui();
         closeModal(true);
         refreshLanguage();
@@ -1320,7 +1337,10 @@ function showSettings(onClose) {
 }
 
 function refreshLanguage() {
-  if (S.screen === 'title') showTitle();
+  if (S.screen === 'title') {
+    renderTitle();
+    layoutTitle();
+  }
   else if (S.screen === 'map') showMap();
   else if (S.screen === 'game') {
     $('levelTag').textContent = levelTag(S.level);

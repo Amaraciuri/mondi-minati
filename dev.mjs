@@ -50,4 +50,4 @@ http
       res.end(data);
     });
   })
-  .listen(PORT, () => console.log(`Mondi Minati: http://localhost:${PORT}  (Ctrl+C per fermare)`));
+  .listen(PORT, () => console.log(`Mined Worlds: http://localhost:${PORT}  (Ctrl+C to stop)`));

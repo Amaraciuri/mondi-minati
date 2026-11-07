@@ -1,110 +1,111 @@
-# Mondi Minati
+# Mined Worlds (Mondi Minati)
 
-Il campo minato in 3D, un pianeta alla volta. Three.js e JavaScript puro, nessun framework: la build è un sito statico pronto per Cloudflare Pages.
+Minesweeper in 3D, one planet at a time. Three.js and plain JavaScript, no framework: the build is a static site ready for Cloudflare Pages.
 
-![Schermata iniziale](docs/title.webp)
+The game is in English and Italian. It follows the device language (Italian devices get Italian, everything else English), and the player can switch from the title screen or in Settings.
 
-| Cubo Titano | Classico '95 |
+![Title screen](docs/title.webp)
+
+| Titan Cube | Classic '95 |
 | --- | --- |
-| ![Cubo](docs/cubo.webp) | ![Classico 95](docs/classico.webp) |
+| ![Cube](docs/cubo.webp) | ![Classic 95](docs/classico.webp) |
 
-<img src="docs/mobile-ciambella.webp" width="260" alt="La ciambella sul telefono">
+<img src="docs/mobile-ciambella.webp" width="260" alt="The donut world on a phone">
 
-## Cosa c'è dentro
+## What's inside
 
-- **Campagna di 10 mondi**, ognuno con una forma che cambia le regole:
-  - sfere esagonali: 6 vicine, 5 sui 12 pentagoni;
-  - cubi: le vicine continuano sulla faccia accanto, 7 negli angoli;
-  - ciambella (toro): nessun bordo, sempre 8 vicine;
-  - asteroide bitorzoluto e gigante gassoso con anelli.
-- **Classico '95**: campo piatto grigio su sfondo verde acqua, contatori LED e faccina (9×9, 16×16, 30×16).
-- **Sfida del giorno**: stesso pianeta per tutti, generato dalla data.
-- **Partita libera**: forma, misura e difficoltà a scelta.
-- **Niente tentativi alla cieca**: la prima mossa è sicura e ogni campo viene verificato da un risolutore logico prima di giocarlo.
-- Aiuti (3 per mondo), annulla mossa dopo un'esplosione, stelle e record salvati nel browser.
-- Effetti e musica sintetizzati con WebAudio, senza file audio.
-- Italiano e inglese.
-- Installabile come app dal browser (PWA) e giocabile offline dopo la prima apertura.
+- **A 10-world campaign**, where each shape changes the rules:
+  - hex spheres: 6 neighbours, 5 on the 12 pentagons;
+  - cubes: neighbours continue onto the next face, 7 on the corners;
+  - a donut (torus): no edges at all, always 8 neighbours;
+  - a lumpy asteroid and a ringed gas giant.
+- **Classic '95**: the flat grey field on a teal background, with LED counters and the smiley (9×9, 16×16, 30×16).
+- **Daily challenge**: the same planet for everyone, generated from the date.
+- **Free play**: pick shape, size and difficulty.
+- **No blind guessing**: the first move is always safe and every field is checked by a logic solver before you play it.
+- Hints (3 per world), undo after an explosion, stars and records saved in the browser.
+- Sound effects and music synthesized with WebAudio, no audio files.
+- Installable from the browser (PWA) and playable offline after the first visit.
 
-## Comandi
+## Controls
 
-| Azione | Telefono | Computer |
+| Action | Phone | Computer |
 | --- | --- | --- |
-| Scava | tocco | clic |
-| Bandiera | pressione lunga, o pulsante centrale | clic destro, tasto F |
-| Apri le vicine di un numero completo | tocco sul numero | clic sul numero, clic centrale |
-| Ruota / sposta | trascina | trascina, frecce |
-| Zoom | pizzica | rotella, + e − |
-| Aiuto / ricomincia / pausa | pulsanti in basso, faccina | H, R, Esc |
+| Dig | tap | click |
+| Flag | press and hold, or the centre button | right-click, F key |
+| Open the neighbours of a satisfied number | tap the number | click the number, middle-click |
+| Rotate / move | drag | drag, arrow keys |
+| Zoom | pinch | wheel, + and − |
+| Hint / restart / pause | bottom buttons, smiley | H, R, Esc |
 
-## Sviluppo
+## Development
 
-Serve Node 20 o superiore.
+Needs Node 20 or later.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173, ricostruisce a ogni modifica
-npm test         # geometrie, regole e risolutore
-npm run build    # sito statico in dist/
+npm run dev      # http://localhost:5173, rebuilds on every change
+npm test         # geometry, rules and solver
+npm run build    # static site in dist/
 ```
 
-Aggiungi `?debug` all'indirizzo per avere `window.__mm` in console (stato della partita e funzioni di gioco).
+Add `?debug` to the URL to get `window.__mm` in the console (game state and game functions).
 
-## Pubblicare su Cloudflare Pages
+## Deploy to Cloudflare Pages
 
-Con il repository collegato, ogni push su `main` ripubblica il sito.
+Once the repository is connected, every push to `main` redeploys the site.
 
-1. Dashboard Cloudflare → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Scegli `Amaraciuri/mondi-minati`, branch `main`.
-3. Impostazioni di build:
+1. Cloudflare dashboard → **Workers & Pages** → **Create application** → **Pages** tab → **Import an existing Git repository**.
+2. Pick `Amaraciuri/mondi-minati`, branch `main`, then **Begin setup**.
+3. Build settings:
    - Framework preset: **None**
    - Build command: `npm run build`
    - Build output directory: `dist`
 4. **Save and Deploy**.
 
-In alternativa, da terminale: `npm run build && npx wrangler pages deploy dist --project-name mondi-minati`.
+From a terminal instead: `npm run build && npx wrangler pages deploy dist --project-name mondi-minati`.
 
-`public/_headers` imposta la cache lunga sui file con hash (`/assets`, `/fonts`) e alcuni header di sicurezza.
+`public/_headers` sets long-term caching on the hashed files (`/assets`, `/fonts`) and a few security headers.
 
-## App per telefono (Capacitor)
+## Phone app (Capacitor)
 
-`dist/` contiene già three.js e i font, quindi funziona anche offline dentro un'app.
+`dist/` already contains three.js and the fonts, so it also works offline inside an app.
 
 ```bash
 npm i @capacitor/core @capacitor/android @capacitor/ios
 npm i -D @capacitor/cli
-npx cap init "Mondi Minati" com.tuodominio.mondiminati --web-dir dist
+npx cap init "Mined Worlds" com.yourdomain.minedworlds --web-dir dist
 npm run build && npx cap add android && npx cap add ios && npx cap sync
 ```
 
-## Struttura
+## Project layout
 
-| File | Cosa fa |
+| File | What it does |
 | --- | --- |
-| `src/main.js` | flusso di gioco, schermate, input, salvataggi |
-| `src/shapes.js` | geometrie (sfera di Goldberg, cubo, toro, asteroide, piano) e vicine calcolate dagli angoli condivisi |
-| `src/minesweeper.js` | regole, risolutore logico, generatore di campi senza tentativi |
-| `src/render/planet.js` | tutte le tessere in una sola mesh animata nello shader, bandiere, mine, nucleo luminoso |
-| `src/render/atlas.js` | numeri e icone disegnati in una texture |
-| `src/render/fx.js` | stelle, nebulosa, particelle |
-| `src/render/map.js` | mappa della campagna |
-| `src/rig.js` | camera, rotazione a trackball con inerzia, zoom, spostamento del piano |
-| `src/input.js` | tocco, pressione lunga, clic destro, pinch, rotella |
-| `src/audio.js` | effetti e musica sintetizzati |
-| `src/levels.js` | mondi, temi, modalità |
-| `src/i18n.js` | testi in italiano e inglese |
-| `src/ui.js` | HUD, contatori a 7 segmenti, faccina, finestre |
-| `src/sw.js` | service worker per il gioco offline |
-| `build.mjs` | build `site` (Cloudflare), `artifact` (pagina unica con three.js da CDN), `test` |
-| `public/` | icone, manifest PWA, `_headers` |
-| `test/` | test di logica (`core.test.mjs`) e script Playwright per il browser |
+| `src/main.js` | game flow, screens, input wiring, saves |
+| `src/shapes.js` | board geometry (Goldberg sphere, cube, torus, asteroid, flat) with neighbours computed from shared corners |
+| `src/minesweeper.js` | rules, logic solver, no-guess field generator |
+| `src/render/planet.js` | every tile in one mesh animated in the shader, flags, mines, glowing core |
+| `src/render/atlas.js` | numbers and icons drawn into a texture |
+| `src/render/fx.js` | stars, nebula, particles |
+| `src/render/map.js` | campaign map |
+| `src/rig.js` | camera, trackball rotation with inertia, zoom, panning the flat board |
+| `src/input.js` | tap, press and hold, right-click, pinch, wheel |
+| `src/audio.js` | synthesized sound effects and music |
+| `src/levels.js` | worlds, themes, game modes |
+| `src/i18n.js` | English and Italian text |
+| `src/ui.js` | HUD, 7-segment counters, smiley, dialogs |
+| `src/sw.js` | service worker for offline play |
+| `build.mjs` | builds `site` (Cloudflare), `artifact` (one page with three.js from a CDN) and `test` |
+| `public/` | icons, PWA manifest, `_headers` |
+| `test/` | logic tests (`core.test.mjs`) and Playwright scripts for the browser |
 
-## Test nel browser
+## Browser tests
 
 ```bash
 npm run build:test
-python3 -m http.server 8765        # dalla cartella del progetto
+python3 -m http.server 8765        # from the project folder
 python3 test/smoke.py desktop level0,click,autoplay
 ```
 
-Gli screenshot finiscono in `shots/`.
+Screenshots are written to `shots/`.

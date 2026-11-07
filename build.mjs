@@ -59,7 +59,9 @@ for (const u of THREE_URLS) {
   try { T = await import(u); break; } catch (e) { console.warn('three.js not loaded from', u); }
 }
 if (!T) {
-  document.getElementById('loadingText').textContent = 'Impossibile caricare il motore 3D. Controlla la connessione e ricarica la pagina.';
+  document.getElementById('loadingText').textContent = window.__mmLang === 'it'
+    ? 'Impossibile caricare il motore 3D. Controlla la connessione e ricarica la pagina.'
+    : 'Could not load the 3D engine. Check your connection and reload the page.';
 } else {
   globalThis.__THREE__ = T;
 ${gameJs.replace(/<\/script/gi, '<\\/script')}
