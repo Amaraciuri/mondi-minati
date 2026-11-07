@@ -57,11 +57,21 @@ button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--signa
 #hold.on { opacity: 1; }
 #hold.on circle { transition: stroke-dashoffset 0.27s linear; stroke-dashoffset: 0; }
 
-#loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); z-index: 60; transition: opacity 0.5s; }
-#loading.done { opacity: 0; pointer-events: none; }
-#loading .ld { display: grid; gap: 14px; justify-items: center; color: var(--muted); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
-#loading .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.12); border-top-color: var(--signal); animation: spin 0.9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 60; transition: opacity 0.5s, transform 0.5s;
+  background: radial-gradient(ellipse at 50% 40%, #121c38 0%, var(--ink) 62%); }
+#loading.done { opacity: 0; transform: scale(1.04); pointer-events: none; }
+#loading .ld { display: grid; gap: 16px; justify-items: center; width: min(260px, 80vw); }
+.ld-planet { width: min(190px, 48vw); height: auto; overflow: visible; }
+.ld-spin { animation: ldSpin 9s linear infinite; }
+@keyframes ldSpin { from { transform: translateX(0); } to { transform: translateX(-117px); } }
+.ld-digits { font: 800 11px var(--font-display); text-anchor: middle; dominant-baseline: central; }
+.ld-flag { transform-origin: 126px 6px; animation: ldFlag 1.1s ease-in-out infinite alternate; }
+@keyframes ldFlag { from { transform: skewY(-6deg) scaleX(0.92); } to { transform: skewY(5deg) scaleX(1); } }
+.ld-title { font-family: var(--font-display); font-weight: 900; font-size: 26px; letter-spacing: -0.01em; line-height: 1; white-space: nowrap; }
+.ld-title .w2 { color: var(--signal); }
+.ld-bar { width: 100%; height: 5px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.ld-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffcf6b, var(--signal)); transform-origin: left center; transform: scaleX(0); box-shadow: 0 0 12px rgba(255, 181, 71, 0.6); }
+.ld-status { width: 100%; display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; top: var(--safe-t); left: 50%; transform: translateX(-50%); z-index: 10;
@@ -255,6 +265,7 @@ body.retro .badge { border-radius: 0; background: #000080; color: #fff; }
   .mbtn.primary { min-height: 60px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .ld-spin, .ld-flag { animation: none; }
   #banner.show { animation-duration: 1.6s; }
   .panel, #modal { animation: none; }
   .starlist .s { animation-duration: 0.01s; }

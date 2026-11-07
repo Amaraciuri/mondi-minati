@@ -22,6 +22,16 @@ const mark = (n) => {
   }
 };
 mark('eval');
+// tell the page loader (index.html) that the game code is running
+const progress = (p, stage) => {
+  try {
+    window.__mmProgress?.(p, stage);
+  } catch (e) {
+    /* no loader on this page */
+  }
+};
+window.__mmStarted = true;
+progress(0.74, 1);
 
 // ============================================================ storage
 const STORE_KEY = 'mondi-minati-v1';
@@ -1789,25 +1799,23 @@ const nextPaint = () => new Promise((r) => requestAnimationFrame(() => setTimeou
 
 async function boot(hot) {
   mark('boot');
+  progress(0.78, 1);
   resize();
   const cur = hot && hot.current ? hot.current : null;
   const fonts = waitFonts().catch(() => {});
-  if (!(cur && cur.level)) {
-    // Show the title and menu straight away; the 3D planet joins as soon as it is ready.
+  await Promise.race([fonts, sleep(cur && cur.level ? 1500 : 450)]);
+  mark('fonts');
+  progress(0.85, 1);
+  await nextPaint();
+  if (cur && cur.level) startLevel(cur.level, cur);
+  else {
     setScreen('title');
     renderTitle();
-    hideLoader();
-    await Promise.race([fonts, sleep(500)]);
-    await nextPaint();
-    mark('fonts');
-    // the player may already have opened the map or a game: then leave it alone
-    if (S.screen === 'title' && !S.planet) titleScene(true);
-  } else {
-    await Promise.race([fonts, sleep(1500)]);
-    mark('fonts');
-    startLevel(cur.level, cur);
+    titleScene(true);
   }
   mark('scene');
+  progress(0.93, 2);
+  await nextPaint();
   // compile the shaders off the main thread where the browser allows it, so the page never freezes
   try {
     rig.update(0, S.planet ? S.planet.group : dummy);
@@ -1818,11 +1826,13 @@ async function boot(hot) {
     /* compiled on first draw instead */
   }
   mark('compiled');
+  progress(1, 2);
   requestAnimationFrame((ms) => {
     lastMs = ms;
     frame(ms);
   });
-  hideLoader();
+  // let the bar reach 100%, then reveal the title while the planet grows in
+  setTimeout(hideLoader, 220);
   warmUpMap();
 }
 

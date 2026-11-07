@@ -55,6 +55,7 @@ function cdnBoot(urls, gameJs) {
   return `<script type="module">
 const THREE_URLS = ${JSON.stringify(urls)};
 let T = null;
+window.__mmProgress && window.__mmProgress(0.12, 0);
 for (const u of THREE_URLS) {
   try { T = await import(u); break; } catch (e) { console.warn('three.js not loaded from', u); }
 }
@@ -64,6 +65,7 @@ if (!T) {
     : 'Could not load the 3D engine. Check your connection and reload the page.';
 } else {
   globalThis.__THREE__ = T;
+  window.__mmProgress && window.__mmProgress(0.62, 1);
 ${gameJs.replace(/<\/script/gi, '<\\/script')}
 }
 </script>`;
@@ -95,7 +97,6 @@ if (target === 'site') {
     '<link rel="icon" href="./favicon.svg" type="image/svg+xml">',
     '<link rel="apple-touch-icon" href="./apple-touch-icon.png">',
     '<link rel="manifest" href="./manifest.webmanifest">',
-    `<link rel="modulepreload" href="./assets/${jsName}">`,
     ...[
       ['unbounded', 900],
       ['unbounded', 800],
@@ -103,7 +104,37 @@ if (target === 'site') {
     ].map(([pkg, w]) => `<link rel="preload" href="./fonts/${fontFile(pkg, w)}" as="font" type="font/woff2" crossorigin>`),
     `<style>\n${fontFaces((pkg, w) => './fonts/' + fontFile(pkg, w))}\n</style>`,
   ].join('\n');
-  const scripts = [`<script type="module" src="./assets/${jsName}"></script>`];
+  // Download the game with a progress bar, then run it; plain module script as a fallback.
+  const scripts = [
+    `<script>
+(function () {
+  var url = './assets/${jsName}', size = ${Buffer.byteLength(js)};
+  var p = function (v, st) { if (window.__mmProgress) window.__mmProgress(v, st); };
+  function fallback() {
+    if (window.__mmStarted) return;
+    var s = document.createElement('script'); s.type = 'module'; s.src = url; document.body.appendChild(s);
+  }
+  if (!window.fetch || !window.ReadableStream || !window.Blob || !window.URL) return fallback();
+  fetch(url).then(function (res) {
+    if (!res.ok || !res.body) throw new Error('download failed');
+    var reader = res.body.getReader(), chunks = [], got = 0;
+    function pump() {
+      return reader.read().then(function (r) {
+        if (r.done) return;
+        chunks.push(r.value);
+        got += r.value.length;
+        p(0.04 + 0.66 * Math.min(1, got / size), 0);
+        return pump();
+      });
+    }
+    return pump().then(function () {
+      p(0.71, 1);
+      return import(URL.createObjectURL(new Blob(chunks, { type: 'text/javascript' })));
+    });
+  }).catch(fallback);
+})();
+</script>`,
+  ];
   if (!dev) {
     scripts.push(
       "<script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));</script>"
