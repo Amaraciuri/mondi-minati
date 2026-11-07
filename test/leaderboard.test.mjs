@@ -1,7 +1,7 @@
 // Server-side checks for the online leaderboard (worker/daily.js, src/nick.js).
 // node test/leaderboard.test.mjs
 import assert from 'node:assert/strict';
-import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay, MIN_MS_PER_ACTION } from '../worker/daily.js';
+import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay, MIN_MS_PER_ACTION, canonicalUrl } from '../worker/daily.js';
 import { cleanNick } from '../src/nick.js';
 import { dailyLevelFor } from '../src/levels.js';
 import { makeShape } from '../src/shapes.js';
@@ -145,6 +145,18 @@ test('days', () => {
   assert.equal(isDay('2026-02-30'), false);
   assert.equal(isDay('2026-11-7'), false);
   assert.equal(isDay(null), false);
+});
+
+test('one main address', () => {
+  const go = (u) => canonicalUrl(new URL(u), 'mineworldsapp.com');
+  assert.equal(go('https://mineworldsapp.com/'), null);
+  assert.equal(go('http://mineworldsapp.com/?debug'), 'https://mineworldsapp.com/?debug');
+  assert.equal(go('https://www.mineworldsapp.com/'), 'https://mineworldsapp.com/');
+  assert.equal(go('https://mondi-minati.davide-venezia.workers.dev/'), 'https://mineworldsapp.com/');
+  assert.equal(go('https://3f2a91bc-mondi-minati.davide-venezia.workers.dev/'), null); // version preview
+  assert.equal(go('http://127.0.0.1:8787/'), null);
+  assert.equal(go('http://localhost:8787/'), null);
+  assert.equal(canonicalUrl(new URL('http://mineworldsapp.com/'), undefined), null);
 });
 
 test('leaderboard names', () => {

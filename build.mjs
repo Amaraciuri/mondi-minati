@@ -94,10 +94,11 @@ if (target === 'site') {
   for (const f of fs.readdirSync('public')) fs.copyFileSync(`public/${f}`, `${out}/${f}`);
 
   // link previews (WhatsApp, Telegram, LinkedIn, X...) need absolute URLs
-  const site = (process.env.SITE_URL || 'https://mondi-minati.davide-venezia.workers.dev').replace(/\/+$/, '');
+  const site = (process.env.SITE_URL || 'https://mineworldsapp.com').replace(/\/+$/, '');
   const ogTitle = 'Mined Worlds: minesweeper in 3D';
   const ogText = 'Minesweeper on hex planets, cubes and donuts. Every field can be solved by logic alone. Free, in the browser.';
   const head = [
+    `<link rel="canonical" href="${site}/">`,
     '<meta property="og:type" content="website">',
     '<meta property="og:site_name" content="Mined Worlds">',
     `<meta property="og:title" content="${ogTitle}">`,

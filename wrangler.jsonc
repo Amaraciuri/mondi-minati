@@ -7,8 +7,13 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    // only the API runs code; every other request is a static file
-    "run_worker_first": ["/api/*"]
+    // code runs only for the API and the page itself (redirects to the main address);
+    // every other request is a static file
+    "run_worker_first": ["/api/*", "/"]
+  },
+  "vars": {
+    // the main address: http://, www. and workers.dev are redirected here
+    "CANONICAL_HOST": "mineworldsapp.com"
   },
   "d1_databases": [
     {

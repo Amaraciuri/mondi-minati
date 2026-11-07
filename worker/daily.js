@@ -72,3 +72,13 @@ export function officialTime(clientMs, serverMs, actions) {
   if (ms < Math.max(MIN_RUN_MS, actions * MIN_MS_PER_ACTION)) return null;
   return ms;
 }
+
+// http://, www. and the workers.dev address go to https://<CANONICAL_HOST>; local dev and
+// version previews (<id>-mondi-minati.<account>.workers.dev) are left alone
+export function canonicalUrl(url, host) {
+  if (!host) return null;
+  const h = url.hostname;
+  const ours = h === host || h === 'www.' + host || /^mondi-minati\.[^.]+\.workers\.dev$/.test(h);
+  if (!ours || (h === host && url.protocol === 'https:')) return null;
+  return `https://${host}${url.pathname}${url.search}`;
+}

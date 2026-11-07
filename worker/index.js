@@ -9,7 +9,7 @@
 //   POST /api/daily/submit  {proof, player, nick}   puts the proof on the leaderboard
 //   GET  /api/leaderboard?day=&player=    top 50, total, the player's own place
 //   POST /api/nick          {player, nick}
-import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay } from './daily.js';
+import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay, canonicalUrl } from './daily.js';
 import { cleanNick } from '../src/nick.js';
 
 const MAX_BODY = 96 * 1024;
@@ -21,7 +21,12 @@ const MAX_PROOF_AGE = 24 * 3600 * 1000;
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith('/api/')) {
+      // the page itself (wrangler.jsonc sends "/" here too): one address for everyone, since
+      // progress and the leaderboard name are kept per site
+      const to = canonicalUrl(url, env.CANONICAL_HOST);
+      return to ? Response.redirect(to, 301) : env.ASSETS.fetch(request);
+    }
     try {
       return await route(request, env, ctx, url);
     } catch (e) {

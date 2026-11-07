@@ -2,7 +2,7 @@
 
 Minesweeper in 3D, one planet at a time. Three.js and plain JavaScript, no framework: the build is a static site.
 
-**[▶ Play it in your browser](https://mondi-minati.davide-venezia.workers.dev/)**: phone or computer, nothing to install.
+**[▶ Play it in your browser at mineworldsapp.com](https://mineworldsapp.com/)**: phone or computer, nothing to install.
 
 The game is in English and Italian. It follows the device language (Italian devices get Italian, everything else English), and the player can switch from the title screen or in Settings.
 
@@ -62,11 +62,11 @@ Add `?debug` to the URL to get `window.__mm` in the console (game state and game
 
 ## Deploy
 
-The live version runs on Cloudflare Workers, connected to this repository: every push to `main` runs `npm run build`, then `npx wrangler deploy`. [`wrangler.jsonc`](wrangler.jsonc) serves the static game from `dist/` and sends `/api/*` to the leaderboard code in `worker/`, with a D1 database.
+The live version runs on Cloudflare Workers at [mineworldsapp.com](https://mineworldsapp.com/), connected to this repository: every push to `main` runs `npm run build`, then `npx wrangler deploy`. [`wrangler.jsonc`](wrangler.jsonc) serves the static game from `dist/` and sends `/api/*` to the leaderboard code in `worker/`, with a D1 database. The page itself also goes through the Worker, which redirects `http://`, `www.` and the old workers.dev address to the main one (`CANONICAL_HOST`).
 
 To run your own copy:
 
-1. `npx wrangler d1 create mondi-minati` and put the id it prints in `wrangler.jsonc`.
+1. `npx wrangler d1 create mondi-minati` and put the id it prints in `wrangler.jsonc`; set `CANONICAL_HOST` to your domain (or remove it).
 2. `npx wrangler d1 execute mondi-minati --remote --file=worker/schema.sql`
 3. `npm run build && npx wrangler deploy`, or connect the repository in the Cloudflare dashboard (**Workers & Pages** → **Create** → **Import a repository**; build command `npm run build`, deploy command `npx wrangler deploy`).
 
@@ -74,7 +74,7 @@ Without the database the game still works anywhere as a static site (`dist/`): t
 
 `public/_headers` sets long-term caching on the hashed files (`/assets`, `/fonts`) and a few security headers.
 
-Link previews (WhatsApp, Telegram, LinkedIn, X) use `public/og.jpg` and need absolute URLs: if you deploy somewhere else, build with `SITE_URL=https://your.domain npm run build`.
+Link previews (WhatsApp, Telegram, LinkedIn, X) use `public/og.jpg` and need absolute URLs: they point to `https://mineworldsapp.com`; if you deploy somewhere else, build with `SITE_URL=https://your.domain npm run build`.
 
 ## Online leaderboard
 
