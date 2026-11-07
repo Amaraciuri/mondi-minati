@@ -1812,7 +1812,8 @@ async function boot(hot) {
   try {
     rig.update(0, S.planet ? S.planet.group : dummy);
     if (S.planet) S.planet.update(S.time, camera);
-    await Promise.race([renderer.compileAsync(scene, camera), sleep(4000)]);
+    if (parallelCompile()) await Promise.race([renderer.compileAsync(scene, camera), sleep(4000)]);
+    else renderer.compile(scene, camera);
   } catch (e) {
     /* compiled on first draw instead */
   }
@@ -1822,6 +1823,34 @@ async function boot(hot) {
     frame(ms);
   });
   hideLoader();
+  warmUpMap();
+}
+
+function parallelCompile() {
+  try {
+    return renderer.extensions.has('KHR_parallel_shader_compile');
+  } catch (e) {
+    return false;
+  }
+}
+
+// Prepare the campaign map in the background so opening it later does not stutter.
+function warmUpMap() {
+  const go = () => {
+    if (map) return;
+    try {
+      map = new MapView();
+      map.resize(window.innerWidth, window.innerHeight);
+      map.setProgress(store.campaign);
+      if (parallelCompile()) renderer.compileAsync(map.scene, map.camera).catch(() => {});
+    } catch (e) {
+      map = null;
+    }
+  };
+  setTimeout(() => {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(go, { timeout: 2500 });
+    else go();
+  }, 1600);
 }
 
 // Keep the running game across a republish of the artifact (claude.ai viewer).
