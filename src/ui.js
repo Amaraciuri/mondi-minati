@@ -23,6 +23,7 @@ export const ICON = {
   play: sv('<path d="M8 5.5v13l10-6.5z" fill="currentColor"/>'),
   lock: sv('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
   resume: sv('<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/>'),
+  trophy: sv('<path d="M8 4h8v5.5a4 4 0 0 1-8 0z"/><path d="M8 6H5.2a3.2 3.2 0 0 0 3.3 4.4M16 6h2.8a3.2 3.2 0 0 1-3.3 4.4M12 13.5V17M8.5 20.5h7M9.5 17h5v3.5h-5z"/>'),
 };
 
 export function starSVG(on, size = 18) {

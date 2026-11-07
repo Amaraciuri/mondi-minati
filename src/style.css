@@ -236,6 +236,38 @@ button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--signa
 .lvlbtn small { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
 .lvlbtn .t { font-variant-numeric: tabular-nums; color: var(--signal); font-weight: 700; font-size: 14px; }
 
+/* ---------- online leaderboard ---------- */
+.btn.small { min-height: 40px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
+.mbtn.busy { opacity: 0.7; pointer-events: none; }
+.lb-body { margin-top: 12px; min-height: 120px; }
+.lb-meta { margin: 0 0 8px; color: var(--muted); font-size: 13px; letter-spacing: 0.03em; }
+.lb-body .btn { width: 100%; }
+.lb { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: min(46vh, 420px); overflow: auto; overscroll-behavior: contain; }
+.lb li { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; font-size: 15px; }
+.lb li:nth-child(odd) { background: rgba(255, 255, 255, 0.035); }
+.lb .r { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lb .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb .t { font-variant-numeric: tabular-nums; font-weight: 700; }
+.lb .p1 .r { color: #ffd36b; }
+.lb .p2 .r { color: #d6deea; }
+.lb .p3 .r { color: #e3a26f; }
+.lb li.me { background: rgba(255, 181, 71, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, 0.45); }
+.lb li.me .n { color: var(--signal); font-weight: 700; }
+.lb-you { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 181, 71, 0.12); color: var(--signal); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.lb-empty { margin: 18px 0; color: var(--text); line-height: 1.5; }
+.lb-name { margin-top: 12px; border-top: 1px solid var(--line); }
+.lb-box { margin: 12px 0 2px; }
+.lb-res { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.4; }
+.lb-res b { color: var(--text); font-size: 17px; font-family: var(--font-display); font-weight: 700; }
+.lb-res.ok { border-color: rgba(255, 181, 71, 0.45); }
+.lb-res .btn { margin-top: 6px; justify-self: start; }
+.lb-ask { margin: 0 0 8px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.panel input.txt { width: 100%; min-height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--text);
+  font: 600 16px var(--font-body); outline: none; }
+.panel input.txt:focus { border-color: var(--signal); }
+.panel .err { min-height: 18px; margin: 6px 2px 0; color: #ff9a8c; font-size: 13px; line-height: 1.35; }
+.ranked-note { display: inline-block; margin-top: 6px; color: var(--signal); font-size: 13px; }
+
 /* ---------- Classic '95 skin ---------- */
 body.retro #hud { background: #c0c0c0; border-radius: 0; border: 3px solid; border-color: #fff #7b7b7b #7b7b7b #fff; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25); -webkit-backdrop-filter: none; backdrop-filter: none; }
 body.retro .counter { border-radius: 0; background: #000; box-shadow: none; border: 2px solid; border-color: #7b7b7b #fff #fff #7b7b7b; }
@@ -249,7 +281,15 @@ body.retro .tool.mode { background: #c0c0c0; color: #000; }
 body.retro .tool.mode.flagging { background: #c0c0c0; color: #c00000; }
 body.retro .badge { border-radius: 0; background: #000080; color: #fff; }
 
+/* phones: the three round buttons share the kicker's row, so the big title gets the full width */
+@media (max-width: 599px) {
+  .kicker { min-height: 46px; display: flex; align-items: center; margin-bottom: 6px; }
+}
+@media (max-width: 340px) {
+  .kicker { font-size: 10.5px; letter-spacing: 0.1em; }
+}
 @media (max-width: 380px) {
+  .kicker { min-height: 40px; }
   .ibtn { width: 40px; height: 40px; border-radius: 12px; }
   .kicker { letter-spacing: 0.22em; }
   .counter { width: 66px; height: 36px; }

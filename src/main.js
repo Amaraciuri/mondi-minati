@@ -8,7 +8,9 @@ import { MapView } from './render/map.js';
 import { Rig } from './rig.js';
 import { Input } from './input.js';
 import { Sound } from './audio.js';
-import { THEMES, CAMPAIGN, CLASSIC_LEVELS, CUSTOM_SIZES, CUSTOM_DENSITY, SHAPE_LABEL, campaignLevel, classicLevel, customLevel, dailyLevel, cellCountOf } from './levels.js';
+import { THEMES, CAMPAIGN, CLASSIC_LEVELS, CUSTOM_SIZES, CUSTOM_DENSITY, SHAPE_LABEL, campaignLevel, classicLevel, customLevel, dailyLevel, dailyLevelFor, cellCountOf } from './levels.js';
+import { online, newPlayerId, fmtMs, utcDayKey } from './online.js';
+import { cleanNick, NICK_MAX } from './nick.js';
 import { t, L, setLang, getLang, detectLang } from './i18n.js';
 import { $, ICON, setLed, setFace, toast, hideToast, banner, openModal, closeModal, modalOpen, starsHTML, starSVG, esc } from './ui.js';
 import { mulberry32, formatTime, todayKey, clamp, easeOutBack, easeOutCubic } from './util.js';
@@ -38,7 +40,7 @@ const STORE_KEY = 'mondi-minati-v1';
 function defaults() {
   return {
     // lang is only used once the player picks one (langChosen); until then it follows the device
-    settings: { sfx: true, music: true, haptics: true, noGuess: true, lang: 'en', langChosen: false },
+    settings: { sfx: true, music: true, haptics: true, noGuess: true, lang: 'en', langChosen: false, playerId: '', nick: '' },
     campaign: { unlocked: 1, worlds: {} },
     classic: {},
     custom: {},
@@ -111,6 +113,9 @@ sound.hapticsOn = store.settings.haptics;
 let map = null;
 const isTouch = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DEBUG = /[?&#]debug/.test(location.search + location.hash);
+// with ?debug the console can play by itself: outside local tests those runs aren't ranked
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 const dummy = new THREE.Group();
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -182,6 +187,7 @@ const S = {
   hover: -1,
   time: 0,
   dailyStart: -1,
+  ranked: null, // ranked daily run: { day, moves, token, ok, why }
   faceArmedAt: -10,
   mapSel: 0,
   swipe: 0,
@@ -382,7 +388,7 @@ function levelTitle(level) {
   if (level.mode === 'custom') return `${t('shapes')[level.shape.shape]} · ${t('sizes')[level.sizeIdx]} · ${t('diffs')[level.densIdx]}`;
   if (level.mode === 'daily') {
     try {
-      return new Intl.DateTimeFormat(getLang() === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long' }).format(new Date());
+      return new Intl.DateTimeFormat(getLang() === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(level.dateKey + 'T12:00:00Z'));
     } catch (e) {
       return level.dateKey;
     }
@@ -425,6 +431,11 @@ function startLevel(level, restore = null) {
   S.undo = null;
   S.pressed = [];
   S.dailyStart = -1;
+  S.ranked = null;
+  if (level.mode === 'daily' && level.ranked) {
+    const testMode = DEBUG && !LOCAL_HOST;
+    S.ranked = { day: level.dateKey, moves: [], token: null, ok: !testMode, why: testMode ? 'debug' : '' };
+  }
   S.faceArmedAt = -10;
   planet.setGold(0);
   if (rig.mode === 'orbit') rig.q.copy(initialOrientation(shape));
@@ -463,6 +474,11 @@ function startLevel(level, restore = null) {
           toast(t('beacon'), 3200);
         }
       });
+      if (!level.ranked) {
+        after(4.4, () => {
+          if (S.level === level && (S.status === 'ready' || S.status === 'playing') && !modalOpen()) toast(t('dailyOffline'), 3400);
+        });
+      }
     }
     firstRunTips();
   }
@@ -570,10 +586,39 @@ function secondary(c) {
 function doReveal(c) {
   const f = S.field;
   if (!f.placed) ensureBoard(c);
+  const first = S.status === 'ready';
   beginTimer();
+  rankMove(0, c);
+  if (first && S.ranked && S.ranked.ok) requestRunToken();
   pushUndo();
   const out = f.reveal(c);
   applyReveal(out, c);
+}
+
+// ---- ranked daily: the moves are replayed by the server to check the result -------------------
+function rankMove(action, c) {
+  const run = S.ranked;
+  if (!run || !run.ok) return;
+  if (run.moves.length >= 3990) {
+    run.ok = false;
+    run.why = 'offline';
+    return;
+  }
+  run.moves.push([action, c]);
+}
+
+function requestRunToken() {
+  const run = S.ranked;
+  run.tokenP = online.start(run.day).then((r) => {
+    if (r.ok && r.token) {
+      run.token = r.token;
+      if (S.ranked === run) saveCurrentSoon();
+      return r.token;
+    }
+    run.ok = false;
+    run.why = r.error === 'day' ? 'day' : 'offline';
+    return null;
+  });
 }
 
 function doChord(c) {
@@ -583,6 +628,7 @@ function doChord(c) {
     if (f.counts[c] > 0 && f.hiddenAround(c).length) sound.denied();
     return;
   }
+  rankMove(1, c);
   pushUndo();
   const out = f.chord(c);
   sound.chord();
@@ -605,6 +651,7 @@ function refreshSatisfied(cells) {
 function doFlag(c) {
   const f = S.field;
   if (f.revealed[c]) return;
+  rankMove(2, c);
   const on = f.toggleFlag(c);
   S.planet.setCell(c, on ? ST.FLAG : ST.HIDDEN, 0);
   S.planet.showFlag(c, !!on);
@@ -767,6 +814,10 @@ function undoLastMove() {
   const planet = S.planet;
   if (!S.undo) return;
   const exploded = f.exploded.slice();
+  if (S.ranked) {
+    S.ranked.ok = false;
+    S.ranked.why = 'undo';
+  }
   f.restore(S.undo);
   for (const c of exploded) {
     if (!f.flags[c]) f.toggleFlag(c);
@@ -800,6 +851,11 @@ function win(lastCell) {
   const f = S.field;
   const planet = S.planet;
   S.elapsed = currentElapsed();
+  if (S.ranked && S.ranked.ok) {
+    S.ranked.ms = Math.round(S.elapsed * 1000);
+    // straight away, so the official time doesn't include typing a name
+    S.ranked.finishP = finishRun(S.ranked);
+  }
   S.status = 'won';
   setFace('cool');
   for (let c = 0; c < f.n; c++) {
@@ -985,6 +1041,7 @@ function snapshotGame() {
     gap: rig.gapTarget,
     pan: [rig.pan.x, rig.pan.y],
     dailyStart: S.dailyStart,
+    ranked: S.ranked ? { day: S.ranked.day, moves: S.ranked.moves, token: S.ranked.token, ok: S.ranked.ok, why: S.ranked.why } : null,
   };
 }
 function saveCurrent() {
@@ -1019,6 +1076,14 @@ function applyRestore(r) {
   S.hintsUsed = r.hintsUsed ?? 0;
   S.assisted = !!r.assisted;
   S.dailyStart = r.dailyStart ?? -1;
+  if (r.ranked && S.level.ranked) {
+    S.ranked = { ...r.ranked, moves: (r.ranked.moves || []).slice() };
+    // a run that started without its token can't be checked any more
+    if (S.ranked.moves.length && !S.ranked.token && S.ranked.ok) {
+      S.ranked.ok = false;
+      S.ranked.why = 'offline';
+    }
+  } else if (S.level.ranked) S.ranked = null;
   if (r.status === 'playing') {
     S.status = 'playing';
     S.startTime = realNow() - (r.elapsed || 0);
@@ -1091,6 +1156,7 @@ function renderTitle() {
         <p class="tagline">${esc(t('tagline'))}</p>
       </div>
       <div class="icons">
+        <button class="ibtn" id="tBoard" type="button" aria-label="${esc(t('board'))}">${ICON.trophy}</button>
         <button class="ibtn" id="tSettings" type="button" aria-label="${esc(t('settings'))}">${ICON.sliders}</button>
         <button class="ibtn" id="tHelp" type="button" aria-label="${esc(t('help'))}">${ICON.help}</button>
       </div>
@@ -1115,7 +1181,8 @@ function renderTitle() {
       fn();
     });
   on('tPlay', () => fadeThen(showMap));
-  on('tDaily', () => fadeThen(() => startLevel(dailyLevel())));
+  on('tDaily', openDaily);
+  on('tBoard', () => showLeaderboard());
   on('tCustom', showCustom);
   on('tClassic', showClassic);
   on('tSettings', showSettings);
@@ -1423,7 +1490,7 @@ function showPause() {
   openModal(
     `
     <h2>${esc(t('pause'))}</h2>
-    <p class="lead">${esc(levelTag(S.level))}</p>
+    <p class="lead">${esc(levelTag(S.level))}${S.ranked && S.ranked.ok ? `<br><small class="ranked-note">${esc(t('rankedNote'))}</small>` : ''}</p>
     ${switchRow('pSfx', t('sound'), s.sfx)}
     ${switchRow('pMusic', t('music'), s.music)}
     <div class="actions">
@@ -1464,6 +1531,258 @@ function showPause() {
   });
 }
 
+// ============================================================ online leaderboard (daily)
+function playerId() {
+  const s = store.settings;
+  if (!s.playerId) {
+    s.playerId = newPlayerId();
+    saveStore();
+  }
+  return s.playerId;
+}
+
+// Today's planet comes from the server; offline the game falls back to a local one that isn't ranked.
+let dailyBusy = false;
+async function openDaily() {
+  if (dailyBusy) return;
+  dailyBusy = true;
+  const btn = $('tDaily');
+  const small = btn && btn.querySelector('small');
+  const was = small ? small.textContent : '';
+  if (btn) btn.classList.add('busy');
+  if (small) small.textContent = t('dailyLoading');
+  const d = await online.daily();
+  dailyBusy = false;
+  if (btn) btn.classList.remove('busy');
+  if (small) small.textContent = was;
+  if (S.screen !== 'title') return;
+  const ok = d.ok && Number.isInteger(d.seed) && /^\d{4}-\d{2}-\d{2}$/.test(d.day);
+  const level = ok ? dailyLevelFor(d.day, d.seed >>> 0, { ranked: true }) : dailyLevel();
+  fadeThen(() => startLevel(level));
+}
+
+function untilText(ms) {
+  const min = Math.max(1, Math.ceil(ms / 60000));
+  const h = Math.floor(min / 60);
+  return h ? `${h} h ${min % 60} min` : `${min} min`;
+}
+
+function dayLabel(day) {
+  try {
+    return new Intl.DateTimeFormat(getLang() === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(day + 'T12:00:00Z'));
+  } catch (e) {
+    return day;
+  }
+}
+
+function boardBodyHTML(data, day, today) {
+  if (!data) return `<p class="lb-meta">${esc(t('boardLoading'))}</p>`;
+  if (!data.ok) return `<p class="lb-meta">${esc(t('boardError'))}</p><button class="btn" id="lbRetry" type="button">${esc(t('tryAgain'))}</button>`;
+  const meta = [dayLabel(day), data.total === 1 ? t('player1') : t('players', { n: data.total })];
+  if (day === today) meta.push(t('newIn', { t: untilText(Date.parse(today + 'T00:00:00Z') + 86400000 - Date.now()) }));
+  const rows = data.top
+    .map((r) => `<li class="${r.me ? 'me' : ''}${r.rank <= 3 ? ' p' + r.rank : ''}"><span class="r">${r.rank}</span><span class="n">${esc(r.nick)}</span><span class="t">${fmtMs(r.ms)}</span></li>`)
+    .join('');
+  const meOutside = data.me && !data.top.some((r) => r.me) ? `<p class="lb-you">${esc(t('yourPlace', { r: data.me.rank, t: fmtMs(data.me.ms) }))}</p>` : '';
+  const list = data.top.length ? `<ol class="lb">${rows}</ol>` : `<p class="lb-empty">${esc(day === today ? t('boardEmpty') : t('boardEmptyPast'))}</p>`;
+  return `<p class="lb-meta">${esc(meta.join(' · '))}</p>${list}${meOutside}`;
+}
+
+// The leaderboard of the daily planet: today or yesterday.
+function showLeaderboard({ day = null, onClose = null } = {}) {
+  const today = utcDayKey();
+  const yesterday = utcDayKey(Date.parse(today + 'T00:00:00Z') - 86400000);
+  let shown = day === yesterday ? yesterday : today;
+  const fromTitle = S.screen === 'title';
+  const nick = store.settings.nick;
+  openModal(
+    `<h2>${esc(t('boardTitle'))}</h2>
+     ${segHTML('lbDay', [t('today'), t('yesterday')], shown === today ? 0 : 1)}
+     <div class="lb-body" id="lbBody">${boardBodyHTML(null, shown, today)}</div>
+     <div class="setrow lb-name"><span class="lbl">${esc(t('yourName'))}<small>${esc(nick || t('noName'))}</small></span><button class="btn small" id="lbNick" type="button">${esc(nick ? t('change') : t('choose'))}</button></div>
+     <div class="actions">
+       ${fromTitle ? `<button class="btn primary" id="lbPlay" type="button">${esc(t('playToday'))}</button>` : ''}
+       <button class="btn ${fromTitle ? '' : 'primary'}" id="lbClose" type="button">${esc(t('close'))}</button>
+     </div>`,
+    { onClose }
+  );
+  let req = 0;
+  const load = async () => {
+    const mine = ++req;
+    const body = $('lbBody');
+    if (!body) return;
+    body.innerHTML = boardBodyHTML(null, shown, today);
+    const data = await online.leaderboard(shown, store.settings.playerId);
+    const el = $('lbBody');
+    if (!el || mine !== req) return;
+    el.innerHTML = boardBodyHTML(data, shown, today);
+    $('lbRetry')?.addEventListener('click', () => {
+      sound.ui();
+      load();
+    });
+  };
+  $('lbDay')
+    .querySelectorAll('button')
+    .forEach((b) =>
+      b.addEventListener('click', () => {
+        const next = +b.dataset.k === 0 ? today : yesterday;
+        if (next === shown) return;
+        shown = next;
+        $('lbDay').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        sound.ui();
+        load();
+      })
+    );
+  $('lbNick').addEventListener('click', () => {
+    sound.ui();
+    closeModal(true);
+    showNickModal(() => showLeaderboard({ day: shown, onClose }));
+  });
+  $('lbPlay')?.addEventListener('click', () => {
+    sound.ui();
+    closeModal(true);
+    openDaily();
+  });
+  $('lbClose').addEventListener('click', () => {
+    sound.ui();
+    closeModal();
+  });
+  load();
+}
+
+function nickFormHTML(primaryLabel, secondaryLabel) {
+  return `<input class="txt" id="nkIn" type="text" maxlength="${NICK_MAX * 2}" value="${esc(store.settings.nick || '')}" placeholder="${esc(t('nickTitle'))}" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="${esc(t('yourName'))}">
+    <p class="err" id="nkErr" aria-live="polite"></p>
+    <div class="actions two" style="margin-top:4px"><button class="btn primary" id="nkSave" type="button">${esc(primaryLabel)}</button><button class="btn" id="nkCancel" type="button">${esc(secondaryLabel)}</button></div>`;
+}
+
+// wires the name form; onSave(nick) runs once the name passes the rules
+function bindNickForm(onSave, onCancel) {
+  const input = $('nkIn');
+  const save = () => {
+    const nick = cleanNick(input.value);
+    if (!nick) {
+      $('nkErr').textContent = t('nickBad');
+      input.focus();
+      sound.denied();
+      return;
+    }
+    sound.ui();
+    onSave(nick);
+  };
+  input.addEventListener('input', () => ($('nkErr').textContent = ''));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') save();
+  });
+  $('nkSave').addEventListener('click', save);
+  $('nkCancel').addEventListener('click', () => {
+    sound.ui();
+    onCancel();
+  });
+  if (!isTouch) setTimeout(() => input.focus(), 40);
+}
+
+function showNickModal(after) {
+  openModal(`<h2>${esc(t('nickTitle'))}</h2><p class="lead">${esc(t('nickLead'))}</p>${nickFormHTML(t('save'), t('back'))}`, { onClose: after });
+  bindNickForm(
+    (nick) => {
+      const changed = nick !== store.settings.nick;
+      store.settings.nick = nick;
+      saveStore();
+      if (changed && store.settings.playerId) online.rename(store.settings.playerId, nick);
+      closeModal();
+    },
+    () => closeModal()
+  );
+}
+
+// ---- the ranked result in the win screen ------------------------------------------------------
+const WHY = { offline: 'whyOffline', undo: 'whyUndo', day: 'whyDay', debug: 'whyDebug', skipped: 'whySkipped' };
+
+async function finishRun(run) {
+  const token = run.token || (run.tokenP ? await run.tokenP : null);
+  if (!token) return { ok: false, error: run.why === 'day' ? 'day' : 'offline' };
+  const r = await online.finish({ token, moves: run.moves, ms: run.ms });
+  if (r.ok) run.proof = r.proof;
+  return r;
+}
+
+async function submitRun(run) {
+  if (!run.sending) {
+    run.sending = (async () => {
+      if (!run.proof) {
+        const fin = await (run.finishP || (run.finishP = finishRun(run)));
+        if (!fin.ok) {
+          if (fin.error === 'offline') run.finishP = null; // try again later
+          return fin;
+        }
+      }
+      return online.submit({ proof: run.proof, player: playerId(), nick: store.settings.nick });
+    })();
+  }
+  const r = await run.sending;
+  run.sending = null;
+  run.result = r;
+  return r;
+}
+
+function rankResultHTML(r, run) {
+  if (r.ok) {
+    const lines = [`<b>${esc(t('rankPlace', { r: r.rank, n: r.total }))}</b>`];
+    lines.push(esc(r.improved ? t('rankBest') : t('rankKeep', { t: fmtMs(r.best) })));
+    if (Math.abs(r.ms - run.ms) >= 1000) lines.push(esc(t('rankOfficial', { t: fmtMs(r.ms) })));
+    return `<div class="lb-res ok">${lines.map((l) => `<span>${l}</span>`).join('')}</div>`;
+  }
+  const msg = r.error === 'offline' ? t('rankOffline') : r.error === 'limit' ? t('rankLimit') : r.error === 'day' ? t('whyDay') : t('rankRejected');
+  const retry = r.error === 'offline' ? `<button class="btn small" id="lbRetry" type="button">${esc(t('tryAgain'))}</button>` : '';
+  return `<div class="lb-res"><span>${esc(msg)}</span>${retry}</div>`;
+}
+
+function renderRankBox() {
+  const el = $('lbRes');
+  if (!el || !S.level || S.level.mode !== 'daily') return;
+  const run = S.ranked;
+  if (!S.level.ranked || !run || !run.ok) {
+    el.innerHTML = `<div class="lb-res"><span>${esc(t(WHY[run ? run.why : 'offline'] || 'whyOffline'))}</span></div>`;
+    return;
+  }
+  if (run.result) {
+    el.innerHTML = rankResultHTML(run.result, run);
+    $('lbRetry')?.addEventListener('click', () => {
+      sound.ui();
+      run.result = null;
+      renderRankBox();
+    });
+    return;
+  }
+  if (!store.settings.nick) {
+    el.innerHTML = `<p class="lb-ask">${esc(t('nickLead'))}</p>${nickFormHTML(t('saveSend'), t('dontSend'))}`;
+    bindNickForm(
+      (nick) => {
+        store.settings.nick = nick;
+        saveStore();
+        renderRankBox();
+      },
+      () => {
+        run.ok = false;
+        run.why = 'skipped';
+        renderRankBox();
+      }
+    );
+    return;
+  }
+  el.innerHTML = `<div class="lb-res"><span>${esc(t('rankSending'))}</span></div>`;
+  submitRun(run).then((r) => {
+    if (r.error === 'nick') {
+      // the server didn't take the saved name: ask again
+      store.settings.nick = '';
+      saveStore();
+      run.result = null;
+    }
+    if (S.ranked === run) renderRankBox();
+  });
+}
+
 function showWinModal(res) {
   const lvl = S.level;
   const camp = lvl.mode === 'campaign';
@@ -1484,15 +1803,30 @@ function showWinModal(res) {
   const actions = camp
     ? `${last ? '' : `<button class="btn primary" id="rNext" type="button">${esc(t('next'))}</button>`}
        <div class="actions two" style="margin-top:0"><button class="btn" id="rReplay" type="button">${esc(t('replay'))}</button><button class="btn ${last ? 'primary' : ''}" id="rMap" type="button">${esc(t('toMap'))}</button></div>`
-    : `<button class="btn primary" id="rReplay" type="button">${esc(lvl.mode === 'daily' ? t('replay') : t('retry'))}</button>
+    : lvl.mode === 'daily'
+    ? `<button class="btn primary" id="rBoard" type="button">${ICON.trophy}${esc(t('board'))}</button>
+       <div class="actions two" style="margin-top:0"><button class="btn" id="rReplay" type="button">${esc(t('replay'))}</button><button class="btn" id="rMap" type="button">${esc(t('toMenu'))}</button></div>`
+    : `<button class="btn primary" id="rReplay" type="button">${esc(t('retry'))}</button>
        <button class="btn" id="rMap" type="button">${esc(t('toMenu'))}</button>`;
   openModal(
     `<h2>${esc(title)}</h2>
      <div class="result-time"><span class="big">${formatTime(res.time)}</span>${recLine}</div>
      ${starList}${extra}
+     ${lvl.mode === 'daily' ? '<div class="lb-box" id="lbRes"></div>' : ''}
      <div class="actions">${actions}</div>`,
     { dismissable: false }
   );
+  if (lvl.mode === 'daily') renderRankBox();
+  $('rBoard')?.addEventListener('click', () => {
+    sound.ui();
+    closeModal(true);
+    showLeaderboard({
+      day: S.ranked ? S.ranked.day : lvl.dateKey,
+      onClose: () => {
+        if (S.status === 'won' && S.screen === 'game' && S.level === lvl) showWinModal(res);
+      },
+    });
+  });
   $('rNext')?.addEventListener('click', () => {
     sound.ui();
     closeModal(true);
@@ -1874,6 +2208,6 @@ if (hot?.ready) hot.ready((data) => boot(data || {}));
 else boot(hot?.data ?? {});
 
 // debug hooks for automated tests
-if (/[?&#]debug/.test(location.search + location.hash)) {
+if (DEBUG) {
   window.__mm = { S, store, rig, startLevel, campaignLevel, classicLevel, customLevel, dailyLevel, primary, secondary, doFlag, useHint, showMap, showTitle, landOn, camera, renderer, findLogicalSafe };
 }
