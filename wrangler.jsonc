@@ -1,0 +1,21 @@
+// Cloudflare Workers: the static game from dist/ plus the leaderboard API in worker/.
+// Cloudflare builds this repository on every push to main (npm run build, then npx wrangler deploy).
+{
+  "name": "mondi-minati",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // only the API runs code; every other request is a static file
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mondi-minati",
+      "database_id": "a6609c68-5f50-44e3-89ee-9513075afe07"
+    }
+  ],
+  "observability": { "enabled": true }
+}

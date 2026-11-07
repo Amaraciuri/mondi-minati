@@ -185,9 +185,17 @@ export function customLevel(shape, sizeIdx, densIdx) {
   };
 }
 
+// Offline daily: built from the device date. It doesn't count for the leaderboard.
 export function dailyLevel(date = new Date()) {
   const key = todayKey(date);
-  const seed = hashString('mondi-minati-' + key);
+  return dailyLevelFor(key, hashString('mondi-minati-' + key));
+}
+
+// The daily planet for a day (YYYY-MM-DD) and a seed. Online the server picks the seed
+// (worker/), so nobody can work out a day's planet from the public code beforehand.
+// The server rebuilds the same planet to check results, so keep this deterministic.
+export function dailyLevelFor(key, seed, { ranked = false } = {}) {
+  const date = new Date(key + 'T12:00:00Z');
   const rng = mulberry32(seed);
   const shapes = [
     { shape: 'sphere', freq: 6 },
@@ -209,5 +217,6 @@ export function dailyLevel(date = new Date()) {
     mines: Math.round(cells * (spec.shape === 'sphere' || spec.shape === 'asteroid' ? 0.19 : 0.165)),
     theme,
     seed,
+    ranked,
   };
 }

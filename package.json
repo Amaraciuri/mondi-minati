@@ -10,7 +10,8 @@
     "build": "node build.mjs site",
     "build:artifact": "node build.mjs artifact",
     "build:test": "node build.mjs test",
-    "test": "node test/core.test.mjs"
+    "test": "node test/core.test.mjs && node test/leaderboard.test.mjs",
+    "dev:worker": "npm run build && npx wrangler dev"
   },
   "engines": {
     "node": ">=18"
