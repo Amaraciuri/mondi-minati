@@ -1,8 +1,21 @@
-// Glyph atlas for numbers and icons printed on the revealed floor tiles.
-// 4 x 4 slots: 0 empty, 1-8 digits, 9 crater/mine, 10 wrong-flag X.
+// Glyph atlas for numbers and icons printed on the tiles.
+// 4 x 4 slots: 0 empty, 1-8 digits, 9 crater/mine, 10 wrong-flag X,
+// 11 flat flag (printed on covered tiles of the classic board, seen from above).
 import * as THREE from 'three';
 
-export const GLYPH = { MINE: 9, WRONG: 10 };
+export const GLYPH = { MINE: 9, WRONG: 10, FLAG: 11 };
+
+const PIXEL_FLAG = [
+  '....RR#....',
+  '..RRRR#....',
+  'RRRRRR#....',
+  '..RRRR#....',
+  '....RR#....',
+  '......#....',
+  '......#....',
+  '....#####..',
+  '..#########',
+];
 
 const PIXEL_DIGITS = {
   1: ['...##..', '..###..', '.####..', '...##..', '...##..', '...##..', '...##..', '...##..', '.######'],
@@ -115,6 +128,20 @@ export function makeAtlas(renderer, { style = 'neon', colors, font = 'sans-serif
     ctx.lineTo(cx - 70, cy + 70);
     ctx.stroke();
     ctx.restore();
+  }
+  // 11: flat flag for the classic board (a 3D flag seen from straight above is just a sliver)
+  {
+    const [x, y] = slot(GLYPH.FLAG);
+    const px = 14;
+    const w = PIXEL_FLAG[0].length * px, h = PIXEL_FLAG.length * px;
+    const x0 = Math.round(x + (C - w) / 2), y0 = Math.round(y + (C - h) / 2);
+    PIXEL_FLAG.forEach((row, r) => {
+      for (let k = 0; k < row.length; k++) {
+        if (row[k] === '.') continue;
+        ctx.fillStyle = row[k] === 'R' ? '#ff0000' : '#000000';
+        ctx.fillRect(x0 + k * px, y0 + r * px, px, px);
+      }
+    });
   }
 
   const tex = new THREE.CanvasTexture(cv);

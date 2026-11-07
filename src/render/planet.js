@@ -183,6 +183,14 @@ void main() {
       col = base * 0.58;
     }
     if (flagged) col = mix(col, uFlagTint, 0.2);
+    if (flagged && uRetro > 0.5 && vPart < 1.5) {
+      // classic board: print the flag on the tile, Windows 95 style
+      vec2 uv = vUV;
+      if (uv.x > 0.0 && uv.y > 0.0 && uv.x < 1.0 && uv.y < 1.0) {
+        vec4 g = texture(uAtlas, (vec2(3.0, 2.0) + vec2(uv.x, 1.0 - uv.y)) / 4.0);
+        col = mix(col, g.rgb, g.a);
+      }
+    }
     if (vHover > 0.5) col *= 1.16;
   }
   col = col * diff + spec;
@@ -816,6 +824,8 @@ export class PlanetView {
   showFlag(c, on, animate = true) {
     if (!!this.flagShown[c] === on) return;
     this.flagShown[c] = on ? 1 : 0;
+    // the classic board prints a flat flag on the tile instead (see TILE_FS)
+    if (this.theme.retro) return;
     if (animate) this.flagAnims.set(c, { t0: this.time, on });
     else {
       const m = new THREE.Matrix4();
