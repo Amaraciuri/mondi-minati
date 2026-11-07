@@ -95,7 +95,12 @@ if (target === 'site') {
     '<link rel="icon" href="./favicon.svg" type="image/svg+xml">',
     '<link rel="apple-touch-icon" href="./apple-touch-icon.png">',
     '<link rel="manifest" href="./manifest.webmanifest">',
-    `<link rel="preload" href="./fonts/${fontFile('unbounded', 800)}" as="font" type="font/woff2" crossorigin>`,
+    `<link rel="modulepreload" href="./assets/${jsName}">`,
+    ...[
+      ['unbounded', 900],
+      ['unbounded', 800],
+      ['chakra-petch', 400],
+    ].map(([pkg, w]) => `<link rel="preload" href="./fonts/${fontFile(pkg, w)}" as="font" type="font/woff2" crossorigin>`),
     `<style>\n${fontFaces((pkg, w) => './fonts/' + fontFile(pkg, w))}\n</style>`,
   ].join('\n');
   const scripts = [`<script type="module" src="./assets/${jsName}"></script>`];

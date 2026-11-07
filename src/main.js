@@ -14,6 +14,14 @@ import { $, ICON, setLed, setFace, toast, hideToast, banner, openModal, closeMod
 import { mulberry32, formatTime, todayKey, clamp, easeOutBack, easeOutCubic } from './util.js';
 
 THREE.ColorManagement.enabled = false;
+const mark = (n) => {
+  try {
+    performance.mark('mm:' + n);
+  } catch (e) {
+    /* marks are optional */
+  }
+};
+mark('eval');
 
 // ============================================================ storage
 const STORE_KEY = 'mondi-minati-v1';
@@ -110,7 +118,9 @@ function atlasFor(theme) {
   const key = theme.retro ? 'retro' : 'neon';
   if (!atlasCache.has(key)) {
     if (key === 'neon') neonHasFont = fontReady('Unbounded');
+    mark('atlas-start');
     atlasCache.set(key, makeAtlas(renderer, { style: key, colors: theme.numbers, font: '"Unbounded", "Arial Black", sans-serif' }));
+    mark('atlas-end');
   }
   return atlasCache.get(key);
 }
@@ -1041,8 +1051,18 @@ function showTitle() {
   hideToast();
   setScreen('title');
   S.level = null;
-  buildDemo();
   renderTitle();
+  titleScene(false);
+}
+
+// the rotating demo planet behind the title menu
+function titleScene(intro) {
+  buildDemo();
+  if (intro) {
+    // the planet grows in once the title is already on screen
+    rig.introScale = 0.55;
+    S.intro = { t: 0 };
+  }
   resize();
   requestAnimationFrame(() => {
     layoutTitle();
@@ -1724,6 +1744,10 @@ function frame(ms) {
   stars.update(S.time, pr);
   if (S.screen === 'game' && S.status === 'playing') setLed($('timeCounter'), Math.floor(currentElapsed()), t('time'));
   renderer.render(scene, camera);
+  if (!S.firstFrame) {
+    S.firstFrame = true;
+    mark('frame1');
+  }
 
   // adaptive resolution: if the device struggles, render fewer pixels
   if (!perfChecked && S.screen === 'game') {
@@ -1753,22 +1777,51 @@ async function waitFonts() {
   await Promise.all([document.fonts.load('800 100px "Unbounded"'), document.fonts.load('600 20px "Chakra Petch"')]);
 }
 
+function hideLoader() {
+  const el = $('loading');
+  if (!el || el.classList.contains('done')) return;
+  el.classList.add('done');
+  setTimeout(() => el.remove(), 700);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const nextPaint = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+
 async function boot(hot) {
-  try {
-    await Promise.race([waitFonts(), new Promise((r) => setTimeout(r, 2200))]);
-  } catch (e) {
-    /* fonts are optional */
-  }
+  mark('boot');
   resize();
   const cur = hot && hot.current ? hot.current : null;
-  if (cur && cur.level) startLevel(cur.level, cur);
-  else showTitle();
+  const fonts = waitFonts().catch(() => {});
+  if (!(cur && cur.level)) {
+    // Show the title and menu straight away; the 3D planet joins as soon as it is ready.
+    setScreen('title');
+    renderTitle();
+    hideLoader();
+    await Promise.race([fonts, sleep(500)]);
+    await nextPaint();
+    mark('fonts');
+    // the player may already have opened the map or a game: then leave it alone
+    if (S.screen === 'title' && !S.planet) titleScene(true);
+  } else {
+    await Promise.race([fonts, sleep(1500)]);
+    mark('fonts');
+    startLevel(cur.level, cur);
+  }
+  mark('scene');
+  // compile the shaders off the main thread where the browser allows it, so the page never freezes
+  try {
+    rig.update(0, S.planet ? S.planet.group : dummy);
+    if (S.planet) S.planet.update(S.time, camera);
+    await Promise.race([renderer.compileAsync(scene, camera), sleep(4000)]);
+  } catch (e) {
+    /* compiled on first draw instead */
+  }
+  mark('compiled');
   requestAnimationFrame((ms) => {
     lastMs = ms;
     frame(ms);
   });
-  setTimeout(() => $('loading').classList.add('done'), 120);
-  setTimeout(() => $('loading').remove(), 900);
+  hideLoader();
 }
 
 // Keep the running game across a republish of the artifact (claude.ai viewer).
