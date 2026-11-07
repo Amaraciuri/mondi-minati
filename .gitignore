@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output (Cloudflare builds it from source)
+dist/
+artifact/
+test/out/
+
+# test screenshots and local debris
+shots/
+*.log
+.DS_Store
+.wrangler/

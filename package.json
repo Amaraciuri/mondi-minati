@@ -1,0 +1,23 @@
+{
+  "name": "mondi-minati",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mondi Minati: il campo minato in 3D su pianeti esagonali, cubi e ciambelle (Three.js)",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "build": "node build.mjs site",
+    "build:artifact": "node build.mjs artifact",
+    "build:test": "node build.mjs test",
+    "test": "node test/core.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@fontsource/chakra-petch": "5.3.0",
+    "@fontsource/unbounded": "5.3.0",
+    "esbuild": "0.28.2",
+    "three": "0.186.1"
+  }
+}

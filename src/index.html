@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mondi Minati">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Mondi Minati: il campo minato in 3D su pianeti esagonali, cubi e ciambelle.">
+<title>Mondi Minati</title>
+<!--__HEAD__-->
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="flash"></div>
+<div id="hold" aria-hidden="true"><svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26"></circle></svg></div>
+<header id="hud" class="hidden">
+  <div class="counter" id="mineCounter" role="img"></div>
+  <button class="face" id="face" type="button"></button>
+  <div class="counter" id="timeCounter" role="img"></div>
+  <div id="levelTag"></div>
+</header>
+<nav id="tools" class="hidden">
+  <button class="tool" id="btnMenu" type="button"></button>
+  <button class="tool" id="btnZoomOut" type="button"></button>
+  <button class="tool mode" id="btnMode" type="button"></button>
+  <button class="tool" id="btnZoomIn" type="button"></button>
+  <button class="tool" id="btnHint" type="button"></button>
+</nav>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="banner" aria-hidden="true"><div class="k"></div><div class="n"></div></div>
+<section id="scrTitle" class="screen hidden"></section>
+<section id="scrMap" class="screen hidden"></section>
+<div id="modal" class="hidden"><div class="panel" id="panel" role="dialog" aria-modal="true"></div></div>
+<div id="fade"></div>
+<div id="loading"><div class="ld"><div class="spin"></div><span id="loadingText">Preparo i pianeti…</span></div></div>
+<!--__SCRIPTS__-->
+</body>
+</html>
