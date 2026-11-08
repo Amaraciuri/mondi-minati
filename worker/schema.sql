@@ -1,7 +1,7 @@
 -- Mined Worlds: online leaderboard for the daily challenge (Cloudflare D1).
 -- npx wrangler d1 execute mondi-minati --remote --file=worker/schema.sql
 
--- one row per player per daily planet: their best time
+-- one row per player per daily planet: their best time (deleted after 30 days, see /privacy)
 CREATE TABLE IF NOT EXISTS scores (
   day     TEXT    NOT NULL,  -- UTC day of the daily planet, YYYY-MM-DD
   player  TEXT    NOT NULL,  -- random id kept in the player's browser, never sent back by the API
@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS scores (
 );
 CREATE INDEX IF NOT EXISTS scores_by_time ON scores (day, ms, created);
 CREATE UNIQUE INDEX IF NOT EXISTS scores_by_run ON scores (day, run);
+CREATE INDEX IF NOT EXISTS scores_by_player ON scores (player);
 
 -- the daily planet, built once per day so that checking a run stays cheap
 CREATE TABLE IF NOT EXISTS boards (

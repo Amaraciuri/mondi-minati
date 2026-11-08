@@ -32,6 +32,7 @@ export const online = {
   submit: (entry) => call('/daily/submit', entry, 12000),
   leaderboard: (day, player) => call(`/leaderboard?day=${encodeURIComponent(day)}&player=${encodeURIComponent(player || '')}`, undefined, 9000),
   rename: (player, nick) => call('/nick', { player, nick }, 9000),
+  forget: (player) => call('/forget', { player }, 9000),
 };
 
 // random id that marks this browser's results (it acts as a password: it is never shown)

@@ -9,6 +9,7 @@
 //   POST /api/daily/submit  {proof, player, nick}   puts the proof on the leaderboard
 //   GET  /api/leaderboard?day=&player=    top 50, total, the player's own place
 //   POST /api/nick          {player, nick}
+//   POST /api/forget        {player}      deletes every result of this player
 import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay, canonicalUrl } from './daily.js';
 import { cleanNick } from '../src/nick.js';
 
@@ -17,6 +18,7 @@ const MAX_RUNS = 60; // checked runs per network per day
 const TOP = 50;
 const MAX_RUN_MS = 6 * 3600 * 1000;
 const MAX_PROOF_AGE = 24 * 3600 * 1000;
+const KEEP_DAYS = 30; // leaderboard entries are deleted after this (see /privacy)
 
 export default {
   async fetch(request, env, ctx) {
@@ -45,6 +47,7 @@ function route(request, env, ctx, url) {
   if (p === '/api/daily/submit' && m === 'POST') return submit(request, env);
   if (p === '/api/leaderboard' && m === 'GET') return leaderboard(env, url);
   if (p === '/api/nick' && m === 'POST') return rename(request, env);
+  if (p === '/api/forget' && m === 'POST') return forget(request, env);
   return json({ ok: false, error: 'not-found' }, 404);
 }
 
@@ -170,6 +173,15 @@ async function rename(request, env) {
   return json({ ok: true, nick });
 }
 
+// the random player id lives only in the player's browser, so holding it is what proves ownership
+async function forget(request, env) {
+  const body = await readJson(request);
+  const player = validPlayer(body && body.player);
+  if (!player) return json({ ok: false, error: 'player' }, 400);
+  const res = await env.DB.prepare('DELETE FROM scores WHERE player = ?').bind(player).run();
+  return json({ ok: true, deleted: (res.meta && res.meta.changes) || 0 });
+}
+
 // ---- the daily planet ------------------------------------------------------------------------
 
 const boards = new Map(); // day -> board, per isolate
@@ -188,6 +200,7 @@ async function getBoard(env, day) {
       db.prepare('INSERT OR IGNORE INTO boards (day, data, created) VALUES (?, ?, ?)').bind(day, JSON.stringify(board), Date.now()),
       db.prepare('DELETE FROM boards WHERE day < ?').bind(addDays(day, -3)),
       db.prepare('DELETE FROM limits WHERE k < ?').bind(addDays(day, -1)),
+      db.prepare('DELETE FROM scores WHERE day < ?').bind(addDays(day, -KEEP_DAYS)),
     ]);
   }
   boards.set(day, board);

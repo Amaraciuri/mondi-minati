@@ -1380,7 +1380,8 @@ function showSettings(onClose) {
     ${switchRow('sNg', t('noGuess'), s.noGuess, t('noGuessSub'))}
     <div class="field-label">${esc(t('language'))}</div>
     ${segHTML('sLang', ['Italiano', 'English'], getLang() === 'en' ? 1 : 0)}
-    <div class="actions two"><button class="btn danger" id="sReset" type="button">${esc(t('resetProgress'))}</button><button class="btn primary" id="sClose" type="button">${esc(t('close'))}</button></div>`,
+    <div class="actions two"><button class="btn danger" id="sReset" type="button">${esc(t('resetProgress'))}</button><button class="btn primary" id="sClose" type="button">${esc(t('close'))}</button></div>
+    ${legalLinksHTML()}`,
     { onClose: typeof onClose === 'function' ? onClose : null }
   );
   bindSwitch('sSfx', (v) => {
@@ -1603,7 +1604,8 @@ function showLeaderboard({ day = null, onClose = null } = {}) {
      <div class="actions">
        ${fromTitle ? `<button class="btn primary" id="lbPlay" type="button">${esc(t('playToday'))}</button>` : ''}
        <button class="btn ${fromTitle ? '' : 'primary'}" id="lbClose" type="button">${esc(t('close'))}</button>
-     </div>`,
+     </div>
+     ${legalLinksHTML()}`,
     { onClose }
   );
   let req = 0;
@@ -1650,10 +1652,15 @@ function showLeaderboard({ day = null, onClose = null } = {}) {
   load();
 }
 
+function legalLinksHTML(cls = 'legal') {
+  return `<p class="${cls}"><a href="/privacy" target="_blank" rel="noopener">${esc(t('privacy'))}</a> · <a href="/terms" target="_blank" rel="noopener">${esc(t('terms'))}</a></p>`;
+}
+
 function nickFormHTML(primaryLabel, secondaryLabel) {
   return `<input class="txt" id="nkIn" type="text" maxlength="${NICK_MAX * 2}" value="${esc(store.settings.nick || '')}" placeholder="${esc(t('nickTitle'))}" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="${esc(t('yourName'))}">
     <p class="err" id="nkErr" aria-live="polite"></p>
-    <div class="actions two" style="margin-top:4px"><button class="btn primary" id="nkSave" type="button">${esc(primaryLabel)}</button><button class="btn" id="nkCancel" type="button">${esc(secondaryLabel)}</button></div>`;
+    <div class="actions two" style="margin-top:4px"><button class="btn primary" id="nkSave" type="button">${esc(primaryLabel)}</button><button class="btn" id="nkCancel" type="button">${esc(secondaryLabel)}</button></div>
+    <p class="nick-note">${esc(t('nickPublic'))} <a href="/privacy" target="_blank" rel="noopener">${esc(t('privacy'))}</a> · <a href="/terms" target="_blank" rel="noopener">${esc(t('terms'))}</a></p>`;
 }
 
 // wires the name form; onSave(nick) runs once the name passes the rules
@@ -1683,7 +1690,35 @@ function bindNickForm(onSave, onCancel) {
 }
 
 function showNickModal(after) {
-  openModal(`<h2>${esc(t('nickTitle'))}</h2><p class="lead">${esc(t('nickLead'))}</p>${nickFormHTML(t('save'), t('back'))}`, { onClose: after });
+  const known = !!store.settings.playerId;
+  openModal(
+    `<h2>${esc(t('nickTitle'))}</h2><p class="lead">${esc(t('nickLead'))}</p>${nickFormHTML(t('save'), t('back'))}
+     ${known ? `<div class="forget"><button class="btn danger small" id="nkForget" type="button">${esc(t('forget'))}</button></div>` : ''}`,
+    { onClose: after }
+  );
+  let armed = false;
+  $('nkForget')?.addEventListener('click', async () => {
+    const b = $('nkForget');
+    if (!armed) {
+      armed = true;
+      b.textContent = t('forgetConfirm');
+      sound.ui();
+      return;
+    }
+    b.disabled = true;
+    const r = await online.forget(store.settings.playerId);
+    if (!r.ok) {
+      b.disabled = false;
+      toast(t('forgetFail'));
+      return;
+    }
+    // a fresh id: nothing new gets linked to the deleted results
+    store.settings.playerId = newPlayerId();
+    store.settings.nick = '';
+    saveStore();
+    toast(t('forgetDone'), 2600);
+    closeModal();
+  });
   bindNickForm(
     (nick) => {
       const changed = nick !== store.settings.nick;

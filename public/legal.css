@@ -1,0 +1,51 @@
+/* Privacy Policy and Terms of Use: the game's colours and fonts, made for reading. */
+@font-face { font-family: 'Unbounded'; font-style: normal; font-weight: 800; font-display: swap; src: url('/fonts/unbounded-latin-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/chakra-petch-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Chakra Petch'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/chakra-petch-latin-600-normal.woff2') format('woff2'); }
+
+:root { --ink: #05070d; --text: #e3e8f4; --muted: #95a0b9; --signal: #ffb547; --line: rgba(168, 194, 255, 0.17); color-scheme: dark; }
+* { box-sizing: border-box; }
+html { background: var(--ink); color: var(--text); -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; font: 400 17px/1.65 'Chakra Petch', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: radial-gradient(1100px 520px at 85% -12%, rgba(80, 110, 200, 0.2), transparent 62%), var(--ink); }
+
+/* one language at a time once legal.js has picked it; without script both are shown */
+html[data-show='en'] body [lang='it'], html[data-show='it'] body [lang='en'] { display: none; }
+
+.top { max-width: 760px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left));
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.brand { font: 800 17px/1 'Unbounded', 'Arial Black', sans-serif; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+.brand .w2 { color: var(--signal); }
+.lang { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 99px; }
+.lang button { font: 600 13px/1 'Chakra Petch', sans-serif; letter-spacing: 0.08em; color: var(--muted); background: none; border: 0; padding: 8px 12px; border-radius: 99px; cursor: pointer; }
+.lang button[aria-pressed='true'] { background: var(--signal); color: #1c1306; }
+
+main { max-width: 760px; margin: 0 auto; padding: 4px max(20px, env(safe-area-inset-right)) 36px max(20px, env(safe-area-inset-left)); }
+article { padding-top: 20px; }
+html:not([data-show]) article + article { border-top: 1px solid var(--line); margin-top: 28px; }
+h1 { font: 800 clamp(27px, 6vw, 40px)/1.12 'Unbounded', 'Arial Black', sans-serif; letter-spacing: -0.015em; margin: 14px 0 6px; color: #fff; }
+h2 { font: 600 19px/1.3 'Chakra Petch', sans-serif; margin: 30px 0 6px; color: #fff; }
+.date { margin: 0 0 18px; color: var(--muted); font-size: 14px; letter-spacing: 0.04em; }
+.short { margin: 0; padding: 14px 16px; border-radius: 14px; background: rgba(255, 181, 71, 0.08); border: 1px solid rgba(255, 181, 71, 0.35); }
+p { margin: 0 0 12px; }
+ul { margin: 6px 0 12px; padding-left: 22px; }
+li { margin: 7px 0; }
+li::marker { color: var(--signal); }
+a { color: var(--signal); text-underline-offset: 3px; }
+em { font-style: normal; color: #fff; background: rgba(255, 255, 255, 0.07); padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+strong { color: #fff; font-weight: 600; }
+
+footer { max-width: 760px; margin: 0 auto; padding: 18px max(20px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 15px; color: var(--muted); }
+footer a { color: var(--muted); }
+
+@media (max-width: 420px) {
+  body { font-size: 16px; }
+  em { white-space: normal; }
+}
+@media print {
+  html, body { background: #fff; color: #000; }
+  .lang, footer { display: none; }
+  h1, h2, strong, em { color: #000; }
+  a { color: #000; }
+}

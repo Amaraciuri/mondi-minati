@@ -267,6 +267,10 @@ button:focus-visible, .seg button:focus-visible { outline: 2px solid var(--signa
 .panel input.txt:focus { border-color: var(--signal); }
 .panel .err { min-height: 18px; margin: 6px 2px 0; color: #ff9a8c; font-size: 13px; line-height: 1.35; }
 .ranked-note { display: inline-block; margin-top: 6px; color: var(--signal); font-size: 13px; }
+.panel .legal { margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+.panel .legal a, .panel .nick-note a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.panel .nick-note { margin: 10px 2px 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.panel .forget { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; }
 
 /* ---------- Classic '95 skin ---------- */
 body.retro #hud { background: #c0c0c0; border-radius: 0; border: 3px solid; border-color: #fff #7b7b7b #7b7b7b #fff; box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25); -webkit-backdrop-filter: none; backdrop-filter: none; }

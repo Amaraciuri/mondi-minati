@@ -86,7 +86,7 @@ The daily challenge has a leaderboard per day (UTC). How a result gets there:
 4. **The official time** is the player's own clock, but never less than what the server measured minus 2.5 s of network slack: a made-up time doesn't pass, and pauses count. Anything under 0.1 s per move is refused.
 5. **The name comes last.** `/finish` returns a signed proof; `POST /api/daily/submit` puts it on the board under the player's name. The same proof can't go up under two names. The player is a random id kept in the browser: no email, no account.
 
-Using undo after a mine makes the run unranked. There is also a limit of 60 checked runs per network per day (counted with a daily hashed key, no IP addresses are stored).
+Using undo after a mine makes the run unranked. There is also a limit of 60 checked runs per network per day (counted with a daily hashed key, no IP addresses are stored). Results are deleted after 30 days, and players can delete theirs at any time from the game (`POST /api/forget`).
 
 What it can't stop: the game has to know where the mines are, so someone who writes a bot can still post a fast time. Each day's board starts from zero, and a result can be removed from the D1 console in the Cloudflare dashboard:
 
@@ -150,6 +150,15 @@ Screenshots are written to `shots/`. `python3 test/readme_shots.py` regenerates 
 - [three.js](https://threejs.org) (MIT license).
 - Fonts: [Unbounded](https://fontsource.org/fonts/unbounded) and [Chakra Petch](https://fontsource.org/fonts/chakra-petch), served from [Fontsource](https://fontsource.org) packages (SIL Open Font License 1.1).
 - Sound effects and music are synthesized in the browser: no audio files.
+
+## Privacy and terms
+
+No accounts, ads, analytics or tracking; progress stays on the device. The pages are linked from Settings, the leaderboard and the name form:
+
+- [Privacy Policy](https://mineworldsapp.com/privacy) (`public/privacy.html`)
+- [Terms of Use](https://mineworldsapp.com/terms) (`public/terms.html`)
+
+Both are in English and Italian (`public/legal.js` picks the game's language). Contact: privacy@mineworldsapp.com.
 
 ## License
 
