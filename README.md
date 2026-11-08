@@ -22,7 +22,7 @@ The game is in English and Italian. It follows the device language (Italian devi
   - a donut (torus): no edges at all, always 8 neighbours;
   - a lumpy asteroid and a ringed gas giant.
 - **Classic '95**: the flat grey field on a teal background, with LED counters and the smiley (9×9, 16×16, 30×16).
-- **Daily challenge**: the same planet for everyone, with an **online leaderboard** (today and yesterday, a name and nothing else: no sign-up).
+- **Daily challenge**: the same planet for everyone, a few minutes long and harder through the week (easy on Monday, hard on Sunday), with an **online leaderboard** (today and yesterday, a name and nothing else: no sign-up) and a **Share** button for WhatsApp and friends.
 - **Free play**: pick shape, size and difficulty.
 - **No blind guessing**: the first move is always safe and every field is checked by a logic solver before you play it (on by default, can be turned off in Settings).
 - Hints (3 per world), undo after an explosion, stars and records saved in the browser.
@@ -78,7 +78,7 @@ Link previews (WhatsApp, Telegram, LinkedIn, X) use `public/og.jpg` and need abs
 
 ## Online leaderboard
 
-The daily challenge has a leaderboard per day (UTC). How a result gets there:
+The daily challenge has a leaderboard per day (UTC). Since 9 November 2026 the planet's size and mines follow the weekday (`DAILY_WEEK_FROM` in `src/levels.js`); earlier days keep their rules, because their planets are stored on the server. How a result gets there:
 
 1. **The server picks the planet.** `GET /api/daily` gives the day and a seed made with a secret key, so nobody can work out a day's planet from this public code in advance. Offline, the game builds a local planet that isn't ranked.
 2. **The clock starts on the server.** At the first dig the game asks `POST /api/daily/start` for a signed token with the server's time.

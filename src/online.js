@@ -2,6 +2,9 @@
 // Every call resolves (never throws): when the server can't be reached the game plays offline.
 const API = '/api';
 
+// the main address (set by build.mjs from SITE_URL), used in shared results
+export const SITE_URL = typeof __SITE_URL__ !== 'undefined' ? __SITE_URL__ : 'https://mineworldsapp.com';
+
 async function call(path, body, timeoutMs) {
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
   const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : 0;

@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import { buildDaily, checkRun, officialTime, utcDay, addDays, isDay, MIN_MS_PER_ACTION, canonicalUrl } from '../worker/daily.js';
 import { cleanNick } from '../src/nick.js';
-import { dailyLevelFor } from '../src/levels.js';
+import { dailyLevelFor, cellCountOf, DAILY_WEEK_FROM } from '../src/levels.js';
+import { hashString } from '../src/util.js';
 import { makeShape } from '../src/shapes.js';
 import { BoardGenerator, Minefield, findLogicalSafe } from '../src/minesweeper.js';
 import { mulberry32 } from '../src/util.js';
@@ -78,6 +79,52 @@ test('server rebuilds exactly the planet the game plays', () => {
     assert.deepEqual(s.mines, c.mines, day + ' mines');
     assert.deepEqual(s.nb, c.nb.map((a) => Array.from(a)), day + ' neighbours');
   });
+});
+
+// the rules used before DAILY_WEEK_FROM, as they were: those planets are stored on the server
+function legacyDaily(key, seed) {
+  const date = new Date(key + 'T12:00:00Z');
+  const rng = mulberry32(seed);
+  const shapes = [
+    { shape: 'sphere', freq: 6 },
+    { shape: 'cube', N: 6 },
+    { shape: 'torus', U: 28, V: 11 },
+    { shape: 'asteroid', freq: 6, seed: 1 + (seed % 9) },
+  ];
+  const themes = ['moon', 'mint', 'rust', 'donut', 'rock', 'violet', 'ice', 'lava', 'giant', 'core'];
+  const dayNum = Math.floor(date.getTime() / 86400000);
+  const spec = shapes[dayNum % shapes.length];
+  const cells = cellCountOf(spec);
+  const theme = spec.shape === 'torus' ? (rng() < 0.5 ? 'donut' : 'lava') : themes[Math.floor(rng() * themes.length)];
+  return { shape: spec, mines: Math.round(cells * (spec.shape === 'sphere' || spec.shape === 'asteroid' ? 0.19 : 0.165)), theme };
+}
+
+test('days before the weekly rules keep exactly their planet', () => {
+  for (const day of ['2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08']) {
+    for (const seed of [1, 99, 33580314, 1098986342, 3637480001, hashString('mondi-minati-' + day)]) {
+      const a = dailyLevelFor(day, seed);
+      assert.deepEqual({ shape: a.shape, mines: a.mines, theme: a.theme }, legacyDaily(day, seed), day + ' ' + seed);
+      assert.equal(a.tier, null);
+    }
+  }
+});
+
+test('weekly rules: Monday easy, Sunday hard, every planet solvable without guessing', () => {
+  assert.equal(new Date(DAILY_WEEK_FROM + 'T12:00:00Z').getUTCDay(), 1, 'the weekly rules start on a Monday');
+  // 28 days: every shape on every weekday
+  for (let i = 0; i < 28; i++) {
+    const day = addDays(DAILY_WEEK_FROM, i);
+    const L = dailyLevelFor(day, 1234567 + i);
+    assert.equal(L.tier, i % 7, day + ' tier');
+    const cells = cellCountOf(L.shape);
+    if (L.tier === 0) assert.ok(cells <= 170 && L.mines / cells <= 0.125, day + ' Monday is small');
+    if (L.tier === 6) assert.ok(cells >= 290, day + ' Sunday is big');
+    const shape = makeShape(L.shape);
+    const rng = mulberry32(L.seed);
+    const start = Math.floor(rng() * shape.n);
+    const res = new BoardGenerator(shape.neighbors, L.mines, start, rng, { noGuess: true, maxAttempts: 3000 }).finish(8000);
+    assert.ok(res.solved, `${day} ${L.shape.shape} ${cells}/${L.mines} solvable by logic`);
+  }
 });
 
 test('board survives the trip through the database (JSON)', () => {

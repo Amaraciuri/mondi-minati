@@ -193,30 +193,50 @@ export function dailyLevel(date = new Date()) {
 
 // The daily planet for a day (YYYY-MM-DD) and a seed. Online the server picks the seed
 // (worker/), so nobody can work out a day's planet from the public code beforehand.
-// The server rebuilds the same planet to check results, so keep this deterministic.
+// The server rebuilds the same planet to check results, so keep this deterministic, and
+// never change the rules for days that have already been played (their boards are stored).
+export const DAILY_WEEK_FROM = '2026-11-09';
+// from DAILY_WEEK_FROM: a short planet that grows through the week, Monday (0) to Sunday (6)
+const DAILY_SIZES = {
+  sphere: [{ freq: 3 }, { freq: 4 }, { freq: 4 }, { freq: 5 }, { freq: 5 }, { freq: 6 }, { freq: 6 }],
+  asteroid: [{ freq: 4 }, { freq: 4 }, { freq: 4 }, { freq: 5 }, { freq: 5 }, { freq: 6 }, { freq: 6 }],
+  cube: [{ N: 4 }, { N: 5 }, { N: 5 }, { N: 6 }, { N: 6 }, { N: 7 }, { N: 7 }],
+  torus: [{ U: 18, V: 7 }, { U: 20, V: 8 }, { U: 22, V: 8 }, { U: 24, V: 9 }, { U: 26, V: 10 }, { U: 28, V: 11 }, { U: 30, V: 12 }],
+};
+const DAILY_DENSITY = [0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18];
+// label shown to players: easy Monday-Tuesday, normal midweek, hard at the weekend (index into t('diffs'))
+export const DAILY_DIFF = [0, 0, 1, 1, 1, 2, 2];
+
 export function dailyLevelFor(key, seed, { ranked = false } = {}) {
   const date = new Date(key + 'T12:00:00Z');
   const rng = mulberry32(seed);
-  const shapes = [
-    { shape: 'sphere', freq: 6 },
-    { shape: 'cube', N: 6 },
-    { shape: 'torus', U: 28, V: 11 },
-    { shape: 'asteroid', freq: 6, seed: 1 + (seed % 9) },
-  ];
+  const kinds = ['sphere', 'cube', 'torus', 'asteroid'];
   const themes = ['moon', 'mint', 'rust', 'donut', 'rock', 'violet', 'ice', 'lava', 'giant', 'core'];
   const dayNum = Math.floor(date.getTime() / 86400000);
-  const spec = shapes[dayNum % shapes.length];
+  const kind = kinds[dayNum % kinds.length];
+  let spec, density, tier = null;
+  if (key >= DAILY_WEEK_FROM) {
+    tier = (date.getUTCDay() + 6) % 7;
+    spec = { shape: kind, ...DAILY_SIZES[kind][tier] };
+    density = DAILY_DENSITY[tier];
+  } else {
+    // the first days: one big planet every day
+    spec = [{ shape: 'sphere', freq: 6 }, { shape: 'cube', N: 6 }, { shape: 'torus', U: 28, V: 11 }, { shape: 'asteroid', freq: 6 }][dayNum % 4];
+    density = kind === 'sphere' || kind === 'asteroid' ? 0.19 : 0.165;
+  }
+  if (kind === 'asteroid') spec.seed = 1 + (seed % 9);
   const cells = cellCountOf(spec);
-  const theme = spec.shape === 'torus' ? (rng() < 0.5 ? 'donut' : 'lava') : themes[Math.floor(rng() * themes.length)];
+  const theme = kind === 'torus' ? (rng() < 0.5 ? 'donut' : 'lava') : themes[Math.floor(rng() * themes.length)];
   return {
     mode: 'daily',
     id: 'daily-' + key,
     dateKey: key,
     name: { it: 'Sfida del giorno', en: 'Daily challenge' },
     shape: spec,
-    mines: Math.round(cells * (spec.shape === 'sphere' || spec.shape === 'asteroid' ? 0.19 : 0.165)),
+    mines: Math.round(cells * density),
     theme,
     seed,
     ranked,
+    tier,
   };
 }

@@ -10,6 +10,8 @@ import crypto from 'node:crypto';
 const target = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'site';
 const dev = process.argv.includes('--dev');
 const THREE_VERSION = JSON.parse(fs.readFileSync('node_modules/three/package.json', 'utf8')).version;
+// the main address, for link previews and for links the game shares
+const SITE = (process.env.SITE_URL || 'https://mineworldsapp.com').replace(/\/+$/, '');
 
 const FONTS = [
   ['Unbounded', 'unbounded', [600, 700, 800, 900]],
@@ -37,6 +39,7 @@ async function bundle(threeFromGlobal) {
     target: ['es2020', 'safari15'],
     legalComments: 'none',
     logLevel: 'warning',
+    define: { __SITE_URL__: JSON.stringify(SITE) },
   });
   return res.outputFiles[0].text;
 }
@@ -94,7 +97,7 @@ if (target === 'site') {
   for (const f of fs.readdirSync('public')) fs.copyFileSync(`public/${f}`, `${out}/${f}`);
 
   // link previews (WhatsApp, Telegram, LinkedIn, X...) need absolute URLs
-  const site = (process.env.SITE_URL || 'https://mineworldsapp.com').replace(/\/+$/, '');
+  const site = SITE;
   const ogTitle = 'Mined Worlds: minesweeper in 3D';
   const ogText = 'Minesweeper on hex planets, cubes and donuts. Every field can be solved by logic alone. Free, in the browser.';
   const head = [

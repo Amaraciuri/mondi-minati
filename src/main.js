@@ -8,8 +8,8 @@ import { MapView } from './render/map.js';
 import { Rig } from './rig.js';
 import { Input } from './input.js';
 import { Sound } from './audio.js';
-import { THEMES, CAMPAIGN, CLASSIC_LEVELS, CUSTOM_SIZES, CUSTOM_DENSITY, SHAPE_LABEL, campaignLevel, classicLevel, customLevel, dailyLevel, dailyLevelFor, cellCountOf } from './levels.js';
-import { online, newPlayerId, fmtMs, utcDayKey } from './online.js';
+import { THEMES, CAMPAIGN, CLASSIC_LEVELS, CUSTOM_SIZES, CUSTOM_DENSITY, SHAPE_LABEL, campaignLevel, classicLevel, customLevel, dailyLevel, dailyLevelFor, DAILY_DIFF, cellCountOf } from './levels.js';
+import { online, newPlayerId, fmtMs, utcDayKey, SITE_URL } from './online.js';
 import { cleanNick, NICK_MAX } from './nick.js';
 import { t, L, setLang, getLang, detectLang } from './i18n.js';
 import { $, ICON, setLed, setFace, toast, hideToast, banner, openModal, closeModal, modalOpen, starsHTML, starSVG, esc } from './ui.js';
@@ -388,7 +388,8 @@ function levelTitle(level) {
   if (level.mode === 'custom') return `${t('shapes')[level.shape.shape]} · ${t('sizes')[level.sizeIdx]} · ${t('diffs')[level.densIdx]}`;
   if (level.mode === 'daily') {
     try {
-      return new Intl.DateTimeFormat(getLang() === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(level.dateKey + 'T12:00:00Z'));
+      const date = new Intl.DateTimeFormat(getLang() === 'it' ? 'it-IT' : 'en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(level.dateKey + 'T12:00:00Z'));
+      return level.tier != null ? `${date} · ${dailyDiff(level.tier)}` : date;
     } catch (e) {
       return level.dateKey;
     }
@@ -1576,10 +1577,53 @@ function dayLabel(day) {
   }
 }
 
+// "easy" Monday-Tuesday, "normal" midweek, "hard" at the weekend
+function dailyDiff(tier) {
+  return t('diffs')[DAILY_DIFF[tier]].toLowerCase();
+}
+
+// "easy donut" / "ciambella facile": the shape and difficulty of a day's planet (the seed doesn't change them)
+function dailyKindLabel(day) {
+  const L = dailyLevelFor(day, 0);
+  const shape = t('shapes')[L.shape.shape].toLowerCase();
+  if (L.tier == null) return shape;
+  return getLang() === 'it' ? `${shape} ${dailyDiff(L.tier)}` : `${dailyDiff(L.tier)} ${shape}`;
+}
+
+// Wordle-style: the day, the time and the place, with the link, ready for WhatsApp & co.
+async function shareDaily(lvl, res) {
+  const run = S.ranked && S.ranked.day === lvl.dateKey ? S.ranked : null;
+  const r = run && run.result && run.result.ok ? run.result : null;
+  const ms = r ? r.ms : Math.round(res.time * 1000);
+  const diff = lvl.tier != null ? ` (${dailyDiff(lvl.tier)})` : '';
+  const date = dayLabel(lvl.dateKey);
+  // Italian: "dell'8", "dell'11", otherwise "del 9"
+  const of = /^(8|11)\b/.test(date) ? "dell'" : 'del ';
+  const text = [
+    t('shareLine1', { date, diff, of }),
+    t('shareLine2', { t: fmtMs(ms) }) + (r ? ' · ' + t('sharePlace', { r: r.rank, n: r.total }) : ''),
+    `${t('shareLine3')} ${SITE_URL}`,
+  ].join('\n');
+  if (navigator.share) {
+    try {
+      await navigator.share({ text });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // the player closed the share sheet
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(t('shareCopied'), 2600);
+  } catch (e) {
+    toast(t('shareFail'), 2600);
+  }
+}
+
 function boardBodyHTML(data, day, today) {
   if (!data) return `<p class="lb-meta">${esc(t('boardLoading'))}</p>`;
   if (!data.ok) return `<p class="lb-meta">${esc(t('boardError'))}</p><button class="btn" id="lbRetry" type="button">${esc(t('tryAgain'))}</button>`;
-  const meta = [dayLabel(day), data.total === 1 ? t('player1') : t('players', { n: data.total })];
+  const meta = [dayLabel(day), dailyKindLabel(day), data.total === 1 ? t('player1') : t('players', { n: data.total })];
   if (day === today) meta.push(t('newIn', { t: untilText(Date.parse(today + 'T00:00:00Z') + 86400000 - Date.now()) }));
   const rows = data.top
     .map((r) => `<li class="${r.me ? 'me' : ''}${r.rank <= 3 ? ' p' + r.rank : ''}"><span class="r">${r.rank}</span><span class="n">${esc(r.nick)}</span><span class="t">${fmtMs(r.ms)}</span></li>`)
@@ -1839,7 +1883,7 @@ function showWinModal(res) {
     ? `${last ? '' : `<button class="btn primary" id="rNext" type="button">${esc(t('next'))}</button>`}
        <div class="actions two" style="margin-top:0"><button class="btn" id="rReplay" type="button">${esc(t('replay'))}</button><button class="btn ${last ? 'primary' : ''}" id="rMap" type="button">${esc(t('toMap'))}</button></div>`
     : lvl.mode === 'daily'
-    ? `<button class="btn primary" id="rBoard" type="button">${ICON.trophy}${esc(t('board'))}</button>
+    ? `<div class="actions two" style="margin-top:0"><button class="btn primary" id="rShare" type="button">${ICON.share}${esc(t('share'))}</button><button class="btn" id="rBoard" type="button">${ICON.trophy}${esc(t('board'))}</button></div>
        <div class="actions two" style="margin-top:0"><button class="btn" id="rReplay" type="button">${esc(t('replay'))}</button><button class="btn" id="rMap" type="button">${esc(t('toMenu'))}</button></div>`
     : `<button class="btn primary" id="rReplay" type="button">${esc(t('retry'))}</button>
        <button class="btn" id="rMap" type="button">${esc(t('toMenu'))}</button>`;
@@ -1852,6 +1896,10 @@ function showWinModal(res) {
     { dismissable: false }
   );
   if (lvl.mode === 'daily') renderRankBox();
+  $('rShare')?.addEventListener('click', () => {
+    sound.ui();
+    shareDaily(lvl, res);
+  });
   $('rBoard')?.addEventListener('click', () => {
     sound.ui();
     closeModal(true);
